@@ -1,0 +1,10 @@
+[package]
+name = "toktok_generator"
+version = "0.1.0"
+authors = ["Jannik Obermann <jannik.obermann@gmail.com>"]
+edition = "2018"
+description = "toktok generator - WIP"
+license = "MIT"
+repository = "https://github.com/jannik4/toktok"
+
+[dependencies]
