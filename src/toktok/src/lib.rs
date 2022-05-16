@@ -1,7 +1,11 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+#![deny(rust_2018_idioms)]
+
+#[doc(inline)]
+pub use toktok_core::*;
+
+#[doc(inline)]
+pub use toktok_macros::*;
+
+// Internals
+#[doc(hidden)]
+pub mod __intern;

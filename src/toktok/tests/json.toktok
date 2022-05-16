@@ -1,0 +1,53 @@
+pub json: Value = value ~ eoi => $1;
+
+value: Value = {
+    map => Value::Object($1),
+    array => Value::Array($1),
+    string => Value::String($1),
+    number => Value::Number($1),
+    "true" => Value::Bool(true),
+    "false" => Value::Bool(false),
+};
+
+map: Map<String, Value> = "{" ~ sep0(key_value, ",") ~ "}" => {
+    let mut map = Map::new();
+    for (key, value) in $2 {
+        map.insert(key, value);
+    }
+    map
+};
+key_value: (String, Value) = string ~ ":" ~ value => ($1, $3);
+
+array: Vec<Value> = "[" ~ sep0(value, ",") ~ "]" => {
+    let mut elements = Vec::new();
+    for value in $2 {
+        elements.push(value);
+    }
+    elements
+};
+
+string: String = exact(Token::String) => $1[1..$1.len() - 1].to_owned();
+number: Number = exact(Token::Integer) =>? {
+    Ok($1.parse::<i64>().map_err(|_| Error::new_custom($span, "invalid number".into()))?.into())
+};
+
++++
+
+// Token shortcuts
+
+"{" = Token::BraceOpen
+"}" = Token::BraceClose
+"[" = Token::BracketOpen
+"]" = Token::BracketClose
+"," = Token::Comma
+":" = Token::Colon
+
+"true" = Token::True
+"false" = Token::False
+
++++
+
+use super::Token;
+use serde_json::{Value, Map, Number};
+use toktok::combinator::{sep0, eoi, exact};
+use toktok::Error;

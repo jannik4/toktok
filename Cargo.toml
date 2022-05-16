@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "src/toktok-core",
+    "src/toktok-macros",
     "src/toktok",
-    "src/toktok_generator",
 ]
