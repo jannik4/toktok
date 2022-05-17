@@ -92,6 +92,25 @@ where
     F: Parser<'s, 't, T, O>,
     's: 't,
 {
+    many_n(f, 0)
+}
+
+pub fn many1<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, Vec<O>>
+where
+    F: Parser<'s, 't, T, O>,
+    's: 't,
+{
+    many_n(f, 1)
+}
+
+pub fn many_n<'s, 't, T, O, F>(
+    f: F,
+    n: usize,
+) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, Vec<O>>
+where
+    F: Parser<'s, 't, T, O>,
+    's: 't,
+{
     move |mut state| {
         let mut acc = Vec::new();
 
@@ -103,35 +122,10 @@ where
                     state = rest;
                 }
                 Err(e) => {
-                    state = e.recover(input)?;
-                    break;
-                }
-            }
-        }
+                    if acc.len() < n {
+                        return Err(e);
+                    }
 
-        Ok((state, acc))
-    }
-}
-
-pub fn many1<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, Vec<O>>
-where
-    F: Parser<'s, 't, T, O>,
-    's: 't,
-{
-    move |state| {
-        let mut acc = Vec::new();
-
-        let (mut state, output) = f.parse(state)?;
-        acc.push(output);
-
-        loop {
-            let input = state.input();
-            match f.parse(state) {
-                Ok((rest, output)) => {
-                    acc.push(output);
-                    state = rest;
-                }
-                Err(e) => {
                     state = e.recover(input)?;
                     break;
                 }

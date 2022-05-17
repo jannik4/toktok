@@ -1,0 +1,30 @@
+use super::{Expression, UnaryOperator, BinaryOperator, expr_foldl};
+use toktok::Error;
+
+@lexer::skip = r"[ \t\r\n]+";
+
+pub expression: Expression =
+    expression_product ~ ((op_add | op_sub) ~ expression_product)* => expr_foldl($1, $2);
+
+expression_product: Expression =
+    expression_sign ~ ((op_mul | op_div) ~ expression_sign)* => expr_foldl($1, $2);
+
+expression_sign: Expression = {
+    op_sign ~ expression_sign => Expression::UnaryTerm($1, Box::new($2)),
+    expression_leaf
+};    
+
+expression_leaf: Expression = {
+    "(" ~ expression ~ ")" => $2,
+    r"[0-9_]+" =>? {
+        let v = $1.parse::<u32>().map_err(|_| Error::new_custom($span, "invalid number".into()))?;
+        Ok(Expression::Number(v))
+    }
+};
+
+op_add: BinaryOperator = "+"  => BinaryOperator::Add;
+op_sub: BinaryOperator = "-"  => BinaryOperator::Sub;
+op_mul: BinaryOperator = "*"  => BinaryOperator::Mul;
+op_div: BinaryOperator = "/"  => BinaryOperator::Div;
+
+op_sign: UnaryOperator = "-"  => UnaryOperator::Sign;

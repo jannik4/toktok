@@ -1,3 +1,4 @@
+use crate::pretty_print::pretty_print_toktok_error;
 use crate::{
     ast,
     lexer::{lex, Token},
@@ -13,13 +14,13 @@ use toktok_core::{
 type State<'s, 't> = toktok_core::State<'s, 't, Token>;
 type PResult<'s, 't, O> = toktok_core::PResult<'s, 't, Token, O>;
 
-pub fn parse(source: &str) -> Result<ast::Ast<'_>, toktok_core::Error<Token>> {
+pub fn parse(source: &str) -> anyhow::Result<ast::Ast<'_>> {
     // Lex
     let tokens = lex(source);
 
     // Parse
     let state = toktok_core::State::new(source, &tokens);
-    let (_, ast) = ast(state)?;
+    let (_, ast) = ast(state).map_err(|e| pretty_print_toktok_error(e.into(), source))?;
 
     Ok(ast)
 }
@@ -28,10 +29,75 @@ fn ast<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Ast<'s>>
 where
     's: 't,
 {
-    let (state, rules) = many0(rule)(state)?;
+    let (state, items) = many0(item)(state)?;
     let (state, _) = eoi(state)?;
 
-    Ok((state, ast::Ast { rules }))
+    Ok((state, ast::Ast { items }))
+}
+
+fn item<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Item<'s>>
+where
+    's: 't,
+{
+    alt(
+        use_statement.map(ast::Item::UseStatement),
+        alt(config.map(ast::Item::Config), rule.map(ast::Item::Rule)),
+    )(state)
+}
+
+fn use_statement<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::UseStatement<'s>>
+where
+    's: 't,
+{
+    let (state, (_, use_statement)) = slice(pair(
+        opt(exact(Token::KeywordPublic)),
+        pair(
+            exact(Token::KeywordUse),
+            pair(
+                many1(alt(
+                    exact(Token::LeftBrace).map(|_| ()),
+                    alt(
+                        exact(Token::RightBrace).map(|_| ()),
+                        alt(
+                            exact(Token::DoubleColon).map(|_| ()),
+                            alt(exact(Token::Comma).map(|_| ()), ident.map(|_| ())),
+                        ),
+                    ),
+                )),
+                exact(Token::Semicolon),
+            ),
+        ),
+    ))(state)?;
+
+    Ok((state, ast::UseStatement(use_statement)))
+}
+
+fn config<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Config<'s>>
+where
+    's: 't,
+{
+    let (state, _) = exact(Token::At)(state)?;
+    let (state, name) = path(state)?;
+    let (state, _) = exact(Token::Assign)(state)?;
+    let (state, value) = config_value(state)?;
+    let (state, _) = exact(Token::Semicolon)(state)?;
+
+    Ok((state, ast::Config { name, value }))
+}
+
+fn config_value<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::ConfigValue<'s>>
+where
+    's: 't,
+{
+    alt(
+        delimited(
+            exact(Token::LeftBracket),
+            sep0(config_value, exact(Token::Comma)),
+            exact(Token::RightBracket),
+        )
+        .map(ast::ConfigValue::Array),
+        token.map(ast::ConfigValue::Token),
+    )(state)
 }
 
 fn rule<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Rule<'s>>
@@ -98,8 +164,8 @@ where
 {
     let (state, combinator) = alt(
         alt(
-            combinator_seq.map(|c| ast::Combinator::Seq(c)),
-            combinator_choice.map(|c| ast::Combinator::Choice(c)),
+            combinator_seq.map(ast::Combinator::Seq),
+            combinator_choice.map(ast::Combinator::Choice),
         ),
         combinator_leaf,
     )(state)?;
@@ -139,8 +205,8 @@ where
         // Atom
         slice(alt(
             alt(
+                token.map(ast::CombinatorAtomKind::Token),
                 function_call.map(ast::CombinatorAtomKind::FunctionCall),
-                token_short.map(ast::CombinatorAtomKind::TokenShort),
             ),
             path.map(ast::CombinatorAtomKind::Path),
         ))
@@ -214,13 +280,32 @@ where
     Ok((state, ast::RustExpression(rust_expression)))
 }
 
-fn token_short<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::TokenShort<'s>>
+fn token<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Token<'s>>
 where
     's: 't,
 {
-    let (state, token_short) = exact(Token::TokenShort)(state)?;
+    let (state, token) =
+        alt(token_lit.map(ast::Token::TokenLit), token_regex.map(ast::Token::TokenRegex))(state)?;
 
-    Ok((state, ast::TokenShort(token_short)))
+    Ok((state, token))
+}
+
+fn token_lit<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::TokenLit<'s>>
+where
+    's: 't,
+{
+    let (state, token_lit) = exact(Token::TokenLit)(state)?;
+
+    Ok((state, ast::TokenLit(&token_lit[1..token_lit.len() - 1])))
+}
+
+fn token_regex<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::TokenRegex<'s>>
+where
+    's: 't,
+{
+    let (state, token_regex) = exact(Token::TokenRegex)(state)?;
+
+    Ok((state, ast::TokenRegex(&token_regex[2..token_regex.len() - 1])))
 }
 
 fn path<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Path<'s>>

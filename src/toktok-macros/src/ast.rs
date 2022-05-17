@@ -1,6 +1,28 @@
 #[derive(Debug)]
 pub struct Ast<'a> {
-    pub rules: Vec<Rule<'a>>,
+    pub items: Vec<Item<'a>>,
+}
+
+#[derive(Debug)]
+pub enum Item<'a> {
+    UseStatement(UseStatement<'a>),
+    Config(Config<'a>),
+    Rule(Rule<'a>),
+}
+
+#[derive(Debug)]
+pub struct UseStatement<'a>(pub &'a str);
+
+#[derive(Debug)]
+pub struct Config<'a> {
+    pub name: Path<'a>,
+    pub value: ConfigValue<'a>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ConfigValue<'a> {
+    Array(Vec<ConfigValue<'a>>),
+    Token(Token<'a>),
 }
 
 #[derive(Debug)]
@@ -80,9 +102,15 @@ pub struct CombinatorAtom<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum CombinatorAtomKind<'a> {
+    Token(Token<'a>),
     Path(Path<'a>),
-    TokenShort(TokenShort<'a>),
     FunctionCall(FunctionCall<'a>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Token<'a> {
+    TokenLit(TokenLit<'a>),
+    TokenRegex(TokenRegex<'a>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -91,17 +119,20 @@ pub struct FunctionCall<'a> {
     pub args: Vec<Combinator<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RetType<'a>(pub &'a str);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RustExpression<'a>(pub &'a str);
 
-#[derive(Debug, PartialEq)]
-pub struct TokenShort<'a>(pub &'a str);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TokenLit<'a>(pub &'a str);
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TokenRegex<'a>(pub &'a str);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Path<'a>(pub &'a str);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ident<'a>(pub &'a str);

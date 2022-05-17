@@ -1,6 +1,6 @@
 use logos::Logos;
 
-#[derive(Logos, Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Logos, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Token {
     #[token(";")]
     Semicolon,
@@ -14,6 +14,10 @@ pub enum Token {
     LeftBrace,
     #[token("}")]
     RightBrace,
+    #[token("[")]
+    LeftBracket,
+    #[token("]")]
+    RightBracket,
     #[token("(")]
     LeftParen,
     #[token(")")]
@@ -28,9 +32,13 @@ pub enum Token {
     Assign,
     #[token("?")]
     QuestionMark,
+    #[token("@")]
+    At,
 
     #[token("pub")]
     KeywordPublic,
+    #[token("use")]
+    KeywordUse,
 
     #[token("=>")]
     FatArrow,
@@ -51,8 +59,10 @@ pub enum Token {
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
     Identifier,
 
-    #[regex(r#""[^"]*""#)]
-    TokenShort,
+    #[regex(r#""(?:[^"\\]|\\.)*""#)]
+    TokenLit,
+    #[regex(r#"r"(?:[^"\\]|\\.)*""#)]
+    TokenRegex,
 
     RustExpression,
 
