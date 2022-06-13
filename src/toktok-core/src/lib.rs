@@ -12,10 +12,10 @@ pub use self::{
     state::{Input, SpannedToken, State},
 };
 
-pub type PResult<'s, 't, T, O> = Result<(State<'s, 't, T>, O), ParserError<T>>;
+pub type Result<'s, 't, T, O> = std::result::Result<(State<'s, 't, T>, O), ParserError<T>>;
 
 pub trait Parser<'s, 't, T, O> {
-    fn parse(&self, state: State<'s, 't, T>) -> PResult<'s, 't, T, O>;
+    fn parse(&self, state: State<'s, 't, T>) -> Result<'s, 't, T, O>;
 
     fn as_ref(&self) -> ParserRef<'_, Self> {
         ParserRef { p: self }
@@ -33,9 +33,9 @@ pub trait Parser<'s, 't, T, O> {
 impl<'s, 't, T, O, F> Parser<'s, 't, T, O> for F
 where
     T: 't,
-    F: Fn(State<'s, 't, T>) -> PResult<'s, 't, T, O>,
+    F: Fn(State<'s, 't, T>) -> Result<'s, 't, T, O>,
 {
-    fn parse(&self, state: State<'s, 't, T>) -> PResult<'s, 't, T, O> {
+    fn parse(&self, state: State<'s, 't, T>) -> Result<'s, 't, T, O> {
         self(state)
     }
 }
@@ -48,7 +48,7 @@ impl<'s, 't, T, O, P> Parser<'s, 't, T, O> for ParserRef<'_, P>
 where
     P: Parser<'s, 't, T, O>,
 {
-    fn parse(&self, state: State<'s, 't, T>) -> PResult<'s, 't, T, O> {
+    fn parse(&self, state: State<'s, 't, T>) -> Result<'s, 't, T, O> {
         self.p.parse(state)
     }
 }
@@ -64,7 +64,7 @@ where
     F: Parser<'s, 't, T, O>,
     M: Fn(O) -> O2,
 {
-    fn parse(&self, state: State<'s, 't, T>) -> PResult<'s, 't, T, O2> {
+    fn parse(&self, state: State<'s, 't, T>) -> Result<'s, 't, T, O2> {
         let (state, output) = self.f.parse(state)?;
         Ok((state, (self.m)(output)))
     }

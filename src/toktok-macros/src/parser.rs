@@ -12,7 +12,7 @@ use toktok_core::{
 };
 
 type State<'s, 't> = toktok_core::State<'s, 't, Token>;
-type PResult<'s, 't, O> = toktok_core::PResult<'s, 't, Token, O>;
+type Result<'s, 't, O> = toktok_core::Result<'s, 't, Token, O>;
 
 pub fn parse(source: &str) -> anyhow::Result<ast::Ast<'_>> {
     // Lex
@@ -25,7 +25,7 @@ pub fn parse(source: &str) -> anyhow::Result<ast::Ast<'_>> {
     Ok(ast)
 }
 
-fn ast<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Ast<'s>>
+fn ast<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::Ast<'s>>
 where
     's: 't,
 {
@@ -35,7 +35,7 @@ where
     Ok((state, ast::Ast { items }))
 }
 
-fn item<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Item<'s>>
+fn item<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::Item<'s>>
 where
     's: 't,
 {
@@ -46,7 +46,7 @@ where
     ))(state)
 }
 
-fn use_statement<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::UseStatement<'s>>
+fn use_statement<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::UseStatement<'s>>
 where
     's: 't,
 {
@@ -67,7 +67,7 @@ where
     Ok((state, ast::UseStatement(use_statement)))
 }
 
-fn config<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Config<'s>>
+fn config<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::Config<'s>>
 where
     's: 't,
 {
@@ -80,7 +80,7 @@ where
     Ok((state, ast::Config { name, value }))
 }
 
-fn config_value<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::ConfigValue<'s>>
+fn config_value<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::ConfigValue<'s>>
 where
     's: 't,
 {
@@ -95,7 +95,7 @@ where
     ))(state)
 }
 
-fn rule<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Rule<'s>>
+fn rule<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::Rule<'s>>
 where
     's: 't,
 {
@@ -117,7 +117,7 @@ where
     Ok((state, ast::Rule { is_public: public.is_some(), name, ret_type, productions }))
 }
 
-fn production<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Production<'s>>
+fn production<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::Production<'s>>
 where
     's: 't,
 {
@@ -153,7 +153,7 @@ where
     Ok((state, ast::Production { combinator, rust_expression, is_fallible, source }))
 }
 
-fn combinator<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Combinator<'s>>
+fn combinator<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::Combinator<'s>>
 where
     's: 't,
 {
@@ -166,7 +166,7 @@ where
     Ok((state, combinator))
 }
 
-fn combinator_seq<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::CombinatorSeq<'s>>
+fn combinator_seq<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::CombinatorSeq<'s>>
 where
     's: 't,
 {
@@ -176,7 +176,7 @@ where
     Ok((state, ast::CombinatorSeq { combinators, source }))
 }
 
-fn combinator_choice<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::CombinatorChoice<'s>>
+fn combinator_choice<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::CombinatorChoice<'s>>
 where
     's: 't,
 {
@@ -186,7 +186,7 @@ where
     Ok((state, ast::CombinatorChoice { combinators, source }))
 }
 
-fn combinator_leaf<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Combinator<'s>>
+fn combinator_leaf<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::Combinator<'s>>
 where
     's: 't,
 {
@@ -231,7 +231,7 @@ where
     Ok((state, combinator))
 }
 
-fn function_call<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::FunctionCall<'s>>
+fn function_call<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::FunctionCall<'s>>
 where
     's: 't,
 {
@@ -245,7 +245,7 @@ where
     Ok((state, ast::FunctionCall { name, args }))
 }
 
-fn ret_type<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::RetType<'s>>
+fn ret_type<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::RetType<'s>>
 where
     's: 't,
 {
@@ -262,7 +262,7 @@ where
     Ok((state, ast::RetType(ret_type)))
 }
 
-fn rust_expression<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::RustExpression<'s>>
+fn rust_expression<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::RustExpression<'s>>
 where
     's: 't,
 {
@@ -271,7 +271,7 @@ where
     Ok((state, ast::RustExpression(rust_expression)))
 }
 
-fn token<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Token<'s>>
+fn token<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::Token<'s>>
 where
     's: 't,
 {
@@ -281,7 +281,7 @@ where
     Ok((state, token))
 }
 
-fn token_lit<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::TokenLit<'s>>
+fn token_lit<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::TokenLit<'s>>
 where
     's: 't,
 {
@@ -290,7 +290,7 @@ where
     Ok((state, ast::TokenLit(&token_lit[1..token_lit.len() - 1])))
 }
 
-fn token_regex<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::TokenRegex<'s>>
+fn token_regex<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::TokenRegex<'s>>
 where
     's: 't,
 {
@@ -299,7 +299,7 @@ where
     Ok((state, ast::TokenRegex(&token_regex[2..token_regex.len() - 1])))
 }
 
-fn path<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Path<'s>>
+fn path<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::Path<'s>>
 where
     's: 't,
 {
@@ -309,7 +309,7 @@ where
     Ok((state, ast::Path(path)))
 }
 
-fn ident<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Ident<'s>>
+fn ident<'s, 't>(state: State<'s, 't>) -> Result<'s, 't, ast::Ident<'s>>
 where
     's: 't,
 {

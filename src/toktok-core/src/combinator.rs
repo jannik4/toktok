@@ -1,8 +1,8 @@
-use crate::{Error, PResult, Parser, ParserError, Span, State, StateError, TokenOrEoi};
+use crate::{Error, Parser, ParserError, Result, Span, State, StateError, TokenOrEoi};
 use either::Either;
 use std::ops::Range;
 
-pub fn eoi<'s, 't, T>(state: State<'s, 't, T>) -> PResult<'s, 't, T, ()>
+pub fn eoi<'s, 't, T>(state: State<'s, 't, T>) -> Result<'s, 't, T, ()>
 where
     T: Clone,
 {
@@ -22,7 +22,7 @@ where
     )))
 }
 
-pub fn peek<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, O>
+pub fn peek<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, O>
 where
     F: Parser<'s, 't, T, O>,
     's: 't,
@@ -39,7 +39,7 @@ where
 pub fn peek_negative<'s, 't, T, O, F>(
     f: F,
     err: impl std::error::Error + Send + Sync + Clone + 'static,
-) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, ()>
+) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, ()>
 where
     F: Parser<'s, 't, T, O>,
     's: 't,
@@ -55,7 +55,7 @@ where
     }
 }
 
-pub fn fail<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, O>
+pub fn fail<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, O>
 where
     F: Parser<'s, 't, T, O>,
     's: 't,
@@ -63,7 +63,7 @@ where
     move |state| Ok(f.parse(state).map_err(ParserError::with_is_fail)?)
 }
 
-pub fn box_<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, Box<O>>
+pub fn box_<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, Box<O>>
 where
     F: Parser<'s, 't, T, O>,
     's: 't,
@@ -73,7 +73,7 @@ where
     move |state| Ok(boxed_f.parse(state)?)
 }
 
-pub fn opt<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, Option<O>>
+pub fn opt<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, Option<O>>
 where
     F: Parser<'s, 't, T, O>,
     's: 't,
@@ -87,7 +87,7 @@ where
     }
 }
 
-pub fn many0<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, Vec<O>>
+pub fn many0<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, Vec<O>>
 where
     F: Parser<'s, 't, T, O>,
     's: 't,
@@ -95,7 +95,7 @@ where
     many_n(f, 0)
 }
 
-pub fn many1<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, Vec<O>>
+pub fn many1<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, Vec<O>>
 where
     F: Parser<'s, 't, T, O>,
     's: 't,
@@ -106,7 +106,7 @@ where
 pub fn many_n<'s, 't, T, O, F>(
     f: F,
     n: usize,
-) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, Vec<O>>
+) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, Vec<O>>
 where
     F: Parser<'s, 't, T, O>,
     's: 't,
@@ -139,7 +139,7 @@ where
 pub fn sep0<'s, 't, T, O, O2, F, S>(
     f: F,
     sep: S,
-) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, Vec<O>>
+) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, Vec<O>>
 where
     F: Parser<'s, 't, T, O>,
     S: Parser<'s, 't, T, O2>,
@@ -180,7 +180,7 @@ where
 pub fn sep1<'s, 't, T, O, O2, F, S>(
     f: F,
     sep: S,
-) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, Vec<O>>
+) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, Vec<O>>
 where
     F: Parser<'s, 't, T, O>,
     S: Parser<'s, 't, T, O2>,
@@ -193,7 +193,7 @@ pub fn sep_n<'s, 't, T, O, O2, F, S>(
     f: F,
     sep: S,
     n: usize,
-) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, Vec<O>>
+) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, Vec<O>>
 where
     F: Parser<'s, 't, T, O>,
     S: Parser<'s, 't, T, O2>,
@@ -230,7 +230,7 @@ where
     }
 }
 
-pub fn seq<'s, 't, T, O, G>(group: G) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, O>
+pub fn seq<'s, 't, T, O, G>(group: G) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, O>
 where
     SeqParser<G>: Parser<'s, 't, T, O>,
     's: 't,
@@ -242,7 +242,7 @@ where
 pub fn preceded<'s, 't, T, O1, O2, F1, F2>(
     f1: F1,
     f2: F2,
-) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, O2>
+) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, O2>
 where
     F1: Parser<'s, 't, T, O1>,
     F2: Parser<'s, 't, T, O2>,
@@ -259,7 +259,7 @@ where
 pub fn terminated<'s, 't, T, O1, O2, F1, F2>(
     f1: F1,
     f2: F2,
-) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, O1>
+) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, O1>
 where
     F1: Parser<'s, 't, T, O1>,
     F2: Parser<'s, 't, T, O2>,
@@ -277,7 +277,7 @@ pub fn delimited<'s, 't, T, O1, O2, O3, F1, F2, F3>(
     f1: F1,
     f2: F2,
     f3: F3,
-) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, O2>
+) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, O2>
 where
     F1: Parser<'s, 't, T, O1>,
     F2: Parser<'s, 't, T, O2>,
@@ -293,7 +293,7 @@ where
     }
 }
 
-pub fn alt<'s, 't, T, O, G>(group: G) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, O>
+pub fn alt<'s, 't, T, O, G>(group: G) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, O>
 where
     AltParser<G>: Parser<'s, 't, T, O>,
     's: 't,
@@ -305,7 +305,7 @@ where
 pub fn either<'s, 't, T, O1, O2, F1, F2>(
     f1: F1,
     f2: F2,
-) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, Either<O1, O2>>
+) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, Either<O1, O2>>
 where
     F1: Parser<'s, 't, T, O1>,
     F2: Parser<'s, 't, T, O2>,
@@ -325,7 +325,7 @@ where
     }
 }
 
-pub fn exact<'s, 't, T>(token: T) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, &'s str>
+pub fn exact<'s, 't, T>(token: T) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, &'s str>
 where
     T: Clone + PartialEq,
     's: 't,
@@ -347,7 +347,7 @@ where
 
 pub fn positioned<'s, 't, T, O, F>(
     f: F,
-) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, (O, Range<usize>)>
+) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, (O, Range<usize>)>
 where
     F: Parser<'s, 't, T, O>,
     's: 't,
@@ -361,7 +361,7 @@ where
     }
 }
 
-pub fn slice<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, (O, &'s str)>
+pub fn slice<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, (O, &'s str)>
 where
     F: Parser<'s, 't, T, O>,
     's: 't,
@@ -385,7 +385,7 @@ macro_rules! impl_alt_parser {
         where
             $($ty: Parser<'s, 't, Token, Output>,)*
         {
-            fn parse(&self, mut state: State<'s, 't, Token>) -> PResult<'s, 't, Token, Output> {
+            fn parse(&self, mut state: State<'s, 't, Token>) -> Result<'s, 't, Token, Output> {
                 let input = state.input();
                 $(
                     state = match self.0.$idx.parse(state) {
@@ -419,7 +419,7 @@ macro_rules! impl_seq_parser {
         where
             $($ty: Parser<'s, 't, Token, $ty_out>,)*
         {
-            fn parse(&self, #[allow(unused)] state: State<'s, 't, Token>) -> PResult<'s, 't, Token, ($($ty_out,)*)> {
+            fn parse(&self, #[allow(unused)] state: State<'s, 't, Token>) -> Result<'s, 't, Token, ($($ty_out,)*)> {
                 $(let (state, $out) = self.0.$idx.parse(state)?;)*
                 Ok((state, ($($out,)*)))
             }

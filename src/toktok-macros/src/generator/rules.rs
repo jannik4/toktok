@@ -25,7 +25,7 @@ pub fn generate(
             #rules
 
             mod __intern__ {
-                pub use ::toktok::{combinator as c, State, Input, PResult, Parser, Error, ParserError};
+                pub use ::toktok::{combinator as c, State, Input, Result, Parser, Error, ParserError};
             }
         }
     })
@@ -82,7 +82,7 @@ fn generate_rule(
     Ok(quote! {
         pub fn #rule_name<'s, 't>(
             __state__: self::__intern__::State<'s, 't, Token>
-        ) -> self::__intern__::PResult<'s, 't, Token, #rule_ret_type> where 's: 't {
+        ) -> self::__intern__::Result<'s, 't, Token, #rule_ret_type> where 's: 't {
             #body
         }
     })
