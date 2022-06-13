@@ -60,7 +60,10 @@ where
                         exact(Token::RightBrace).map(|_| ()),
                         alt(
                             exact(Token::DoubleColon).map(|_| ()),
-                            alt(exact(Token::Comma).map(|_| ()), ident.map(|_| ())),
+                            alt(
+                                exact(Token::Comma).map(|_| ()),
+                                alt(exact(Token::OperatorMany0).map(|_| ()), ident.map(|_| ())),
+                            ),
                         ),
                     ),
                 )),
