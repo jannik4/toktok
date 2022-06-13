@@ -6,54 +6,7 @@ use toktok_core::{PrettyPrintOptions, TokenOrEoi};
 pub fn pretty_print_toktok_error(error: toktok_core::Error<Token>, source: &str) -> Error {
     let range = error.span().as_range().cloned().unwrap_or(source.len()..source.len());
     let error = error.pretty_print(&PrettyPrintOptions {
-        rename_token: Some(Box::new(|token: &TokenOrEoi<Token>| {
-            use Token::*;
-
-            let token = match token {
-                TokenOrEoi::Eoi => return "<EOI>".to_string(),
-                TokenOrEoi::Token(token) => token,
-            };
-
-            match token {
-                Semicolon => "`;`",
-                DoubleColon => "`::`",
-                Colon => "`:`",
-                Comma => "`,`",
-                LeftBrace => "`{`",
-                RightBrace => "`}`",
-                LeftBracket => "`[`",
-                RightBracket => "`]`",
-                LeftParen => "`(`",
-                RightParen => "`)`",
-                LeftAngle => "`<`",
-                RightAngle => "`>`",
-                SingleQuote => "`'`",
-                Assign => "`=`",
-                QuestionMark => "`?`",
-                At => "`@`",
-
-                KeywordPublic => "`pub`",
-                KeywordUse => "`use`",
-
-                FatArrow => "`=>`",
-                FatArrowFallible => "`=>?`",
-
-                OperatorSeq => "`~`",
-                OperatorChoice => "`|`",
-                OperatorMany0 => "`*`",
-                OperatorMany1 => "`+`",
-
-                Identifier => "<ID>",
-
-                TokenLit => "<TOKEN_LITERAL>",
-                TokenRegex => "<TOKEN_REGEX>",
-
-                RustExpression => "<RUST_EXPRESSION>",
-
-                Error => "<ERROR>",
-            }
-            .to_string()
-        })),
+        rename_token: None,
         filter_expected: Some(Box::new(|expected: &[TokenOrEoi<Token>]| {
             use std::collections::HashSet;
 

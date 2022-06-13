@@ -1,4 +1,5 @@
 use logos::Logos;
+use std::fmt;
 
 #[derive(Logos, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Token {
@@ -70,6 +71,52 @@ pub enum Token {
     #[regex(r"[ \t\r\n\f]+", logos::skip)]
     #[regex(r"//[^\r\n]*", logos::skip)]
     Error,
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Token::*;
+
+        let s = match self {
+            Semicolon => "`;`",
+            DoubleColon => "`::`",
+            Colon => "`:`",
+            Comma => "`,`",
+            LeftBrace => "`{`",
+            RightBrace => "`}`",
+            LeftBracket => "`[`",
+            RightBracket => "`]`",
+            LeftParen => "`(`",
+            RightParen => "`)`",
+            LeftAngle => "`<`",
+            RightAngle => "`>`",
+            SingleQuote => "`'`",
+            Assign => "`=`",
+            QuestionMark => "`?`",
+            At => "`@`",
+
+            KeywordPublic => "`pub`",
+            KeywordUse => "`use`",
+
+            FatArrow => "`=>`",
+            FatArrowFallible => "`=>?`",
+
+            OperatorSeq => "`~`",
+            OperatorChoice => "`|`",
+            OperatorMany0 => "`*`",
+            OperatorMany1 => "`+`",
+
+            Identifier => "<ID>",
+
+            TokenLit => "<TOKEN_LITERAL>",
+            TokenRegex => "<TOKEN_REGEX>",
+
+            RustExpression => "<RUST_EXPRESSION>",
+
+            Error => "<ERROR>",
+        };
+        write!(f, "{}", s)
+    }
 }
 
 pub fn lex(source: &str) -> Vec<toktok_core::SpannedToken<Token>> {
