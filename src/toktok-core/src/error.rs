@@ -53,7 +53,7 @@ impl<T> ParserError<T> {
 
 impl<T> fmt::Display for ParserError<T>
 where
-    T: fmt::Debug,
+    T: fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
@@ -62,7 +62,7 @@ where
 
 impl<T> StdError for ParserError<T>
 where
-    T: fmt::Debug,
+    T: fmt::Debug + fmt::Display,
 {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         self.0.source()
@@ -132,7 +132,7 @@ impl<T> Error<T> {
 
     pub fn pretty_print(&self, options: &PrettyPrintOptions<T>) -> String
     where
-        T: fmt::Debug,
+        T: fmt::Display,
     {
         match &self.kind {
             ErrorKind::Expected(expected, found) => {
@@ -225,7 +225,7 @@ impl<T> From<ParserError<T>> for Error<T> {
 
 impl<T> fmt::Display for Error<T>
 where
-    T: fmt::Debug,
+    T: fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.pretty_print(&Default::default()))
@@ -234,7 +234,7 @@ where
 
 impl<T> StdError for Error<T>
 where
-    T: fmt::Debug,
+    T: fmt::Debug + fmt::Display,
 {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match &self.kind {
@@ -261,13 +261,13 @@ fn token_str<T>(
     rename_token: Option<&dyn Fn(&TokenOrEoi<T>) -> String>,
 ) -> String
 where
-    T: fmt::Debug,
+    T: fmt::Display,
 {
     match rename_token {
         Some(rename_token) => rename_token(token),
         None => match token {
             TokenOrEoi::Eoi => "<EOI>".to_string(),
-            TokenOrEoi::Token(token) => format!("{:?}", token),
+            TokenOrEoi::Token(token) => format!("{}", token),
         },
     }
 }
