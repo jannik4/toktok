@@ -161,7 +161,7 @@ where
 
         loop {
             let input = state.input();
-            match pair(sep.as_ref(), f.as_ref()).parse(state) {
+            match seq((sep.as_ref(), f.as_ref())).parse(state) {
                 Ok((rest, (_, output))) => {
                     acc.push(output);
                     state = rest;
@@ -210,7 +210,7 @@ where
 
         loop {
             let input = state.input();
-            match pair(sep.as_ref(), f.as_ref()).parse(state) {
+            match seq((sep.as_ref(), f.as_ref())).parse(state) {
                 Ok((rest, (_, output))) => {
                     acc.push(output);
                     state = rest;
@@ -230,21 +230,13 @@ where
     }
 }
 
-pub fn pair<'s, 't, T, O1, O2, F1, F2>(
-    f1: F1,
-    f2: F2,
-) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, (O1, O2)>
+pub fn seq<'s, 't, T, O, G>(group: G) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, O>
 where
-    F1: Parser<'s, 't, T, O1>,
-    F2: Parser<'s, 't, T, O2>,
+    SeqParser<G>: Parser<'s, 't, T, O>,
     's: 't,
 {
-    move |state| {
-        let (state, out1) = f1.parse(state)?;
-        let (state, out2) = f2.parse(state)?;
-
-        Ok((state, (out1, out2)))
-    }
+    let parser = SeqParser(group);
+    move |state| parser.parse(state)
 }
 
 pub fn preceded<'s, 't, T, O1, O2, F1, F2>(
@@ -301,27 +293,13 @@ where
     }
 }
 
-pub fn alt<'s, 't, T, O, F1, F2>(
-    f1: F1,
-    f2: F2,
-) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, O>
+pub fn alt<'s, 't, T, O, G>(group: G) -> impl Fn(State<'s, 't, T>) -> PResult<'s, 't, T, O>
 where
-    F1: Parser<'s, 't, T, O>,
-    F2: Parser<'s, 't, T, O>,
+    AltParser<G>: Parser<'s, 't, T, O>,
     's: 't,
 {
-    move |state| {
-        let input = state.input();
-        let state = match f1.parse(state) {
-            Ok((rest, out)) => return Ok((rest, out)),
-            Err(e) => e.recover(input)?,
-        };
-
-        match f2.parse(state) {
-            Ok((rest, out)) => Ok((rest, out)),
-            Err(e) => Err(e.into()),
-        }
-    }
+    let parser = AltParser(group);
+    move |state| parser.parse(state)
 }
 
 pub fn either<'s, 't, T, O1, O2, F1, F2>(
@@ -397,3 +375,64 @@ where
         Ok((state, (output, slice)))
     }
 }
+
+#[derive(Debug)]
+pub struct AltParser<T>(T);
+
+macro_rules! impl_alt_parser {
+    ($({$idx:tt: $ty:ident}),*) => {
+        impl<'s, 't, Token, Output, $($ty,)*> Parser<'s, 't, Token, Output> for AltParser<($($ty,)*)>
+        where
+            $($ty: Parser<'s, 't, Token, Output>,)*
+        {
+            fn parse(&self, mut state: State<'s, 't, Token>) -> PResult<'s, 't, Token, Output> {
+                let input = state.input();
+                $(
+                    state = match self.0.$idx.parse(state) {
+                        Ok((rest, out)) => return Ok((rest, out)),
+                        Err(e) => e.recover(input)?,
+                    };
+                )*
+                Err(state.into_parts().1.unwrap())
+            }
+        }
+    };
+}
+
+impl_alt_parser!({ 0: T0 }, { 1: T1 }, { 2: T2 }, { 3: T3 }, { 4: T4 }, { 5: T5 }, { 6: T6 }, {
+    7: T7
+});
+impl_alt_parser!({ 0: T0 }, { 1: T1 }, { 2: T2 }, { 3: T3 }, { 4: T4 }, { 5: T5 }, { 6: T6 });
+impl_alt_parser!({ 0: T0 }, { 1: T1 }, { 2: T2 }, { 3: T3 }, { 4: T4 }, { 5: T5 });
+impl_alt_parser!({ 0: T0 }, { 1: T1 }, { 2: T2 }, { 3: T3 }, { 4: T4 });
+impl_alt_parser!({ 0: T0 }, { 1: T1 }, { 2: T2 }, { 3: T3 });
+impl_alt_parser!({ 0: T0 }, { 1: T1 }, { 2: T2 });
+impl_alt_parser!({ 0: T0 }, { 1: T1 });
+impl_alt_parser!({ 0: T0 });
+
+#[derive(Debug)]
+pub struct SeqParser<T>(T);
+
+macro_rules! impl_seq_parser {
+    ($({$idx:tt: $ty:ident, $out:ident: $ty_out:ident}),*) => {
+        impl<'s, 't, Token, $($ty_out,)* $($ty,)*> Parser<'s, 't, Token, ($($ty_out,)*)> for SeqParser<($($ty,)*)>
+        where
+            $($ty: Parser<'s, 't, Token, $ty_out>,)*
+        {
+            fn parse(&self, #[allow(unused)] state: State<'s, 't, Token>) -> PResult<'s, 't, Token, ($($ty_out,)*)> {
+                $(let (state, $out) = self.0.$idx.parse(state)?;)*
+                Ok((state, ($($out,)*)))
+            }
+        }
+    };
+}
+
+impl_seq_parser!({0: T0, out0: Out0}, {1: T1, out1: Out1}, {2: T2, out2: Out2}, {3: T3, out3: Out3}, {4: T4, out4: Out4}, {5: T5, out5: Out5}, {6: T6, out6: Out6}, {7: T7, out7: Out7});
+impl_seq_parser!({0: T0, out0: Out0}, {1: T1, out1: Out1}, {2: T2, out2: Out2}, {3: T3, out3: Out3}, {4: T4, out4: Out4}, {5: T5, out5: Out5}, {6: T6, out6: Out6});
+impl_seq_parser!({0: T0, out0: Out0}, {1: T1, out1: Out1}, {2: T2, out2: Out2}, {3: T3, out3: Out3}, {4: T4, out4: Out4}, {5: T5, out5: Out5});
+impl_seq_parser!({0: T0, out0: Out0}, {1: T1, out1: Out1}, {2: T2, out2: Out2}, {3: T3, out3: Out3}, {4: T4, out4: Out4});
+impl_seq_parser!({0: T0, out0: Out0}, {1: T1, out1: Out1}, {2: T2, out2: Out2}, {3: T3, out3: Out3});
+impl_seq_parser!({0: T0, out0: Out0}, {1: T1, out1: Out1}, {2: T2, out2: Out2});
+impl_seq_parser!({0: T0, out0: Out0}, {1: T1, out1: Out1});
+impl_seq_parser!({0: T0, out0: Out0});
+impl_seq_parser!();

@@ -163,7 +163,7 @@ fn generate_production(
 
     for combinator in combinators {
         let c = generate_combinator(combinator, token_map)?;
-        output = quote! { self::__intern__::c::pair(#output, #c) };
+        output = quote! { self::__intern__::c::seq((#output, #c)) };
     }
 
     Ok(quote! { #output.parse(__state__) })
@@ -182,7 +182,7 @@ fn generate_combinator(
             )?;
             let pair_combinator = combinators.try_fold::<_, _, Result<_>>(init, |lhs, rhs| {
                 let rhs = generate_combinator(rhs, token_map)?;
-                Ok(quote! { self::__intern__::c::pair(#lhs, #rhs) })
+                Ok(quote! { self::__intern__::c::seq((#lhs, #rhs)) })
             })?;
 
             if seq.combinators.len() > 2 {
@@ -200,7 +200,7 @@ fn generate_combinator(
             )?;
             combinators.try_fold::<_, _, Result<_>>(init, |lhs, rhs| {
                 let rhs = generate_combinator(rhs, token_map)?;
-                Ok(quote! { self::__intern__::c::alt(#lhs, #rhs) })
+                Ok(quote! { self::__intern__::c::alt((#lhs, #rhs)) })
             })?
         }
         ast::Combinator::Opt(opt) => {

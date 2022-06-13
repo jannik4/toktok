@@ -5,7 +5,7 @@ use crate::{
 };
 use toktok_core::{
     combinator::{
-        alt, delimited, either, eoi, exact, many0, many1, opt, pair, sep0, sep1, sep_n, slice,
+        alt, delimited, either, eoi, exact, many0, many1, opt, sep0, sep1, sep_n, seq, slice,
         terminated,
     },
     Parser,
@@ -39,38 +39,30 @@ fn item<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Item<'s>>
 where
     's: 't,
 {
-    alt(
+    alt((
         use_statement.map(ast::Item::UseStatement),
-        alt(config.map(ast::Item::Config), rule.map(ast::Item::Rule)),
-    )(state)
+        config.map(ast::Item::Config),
+        rule.map(ast::Item::Rule),
+    ))(state)
 }
 
 fn use_statement<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::UseStatement<'s>>
 where
     's: 't,
 {
-    let (state, (_, use_statement)) = slice(pair(
+    let (state, (_, use_statement)) = slice(seq((
         opt(exact(Token::KeywordPublic)),
-        pair(
-            exact(Token::KeywordUse),
-            pair(
-                many1(alt(
-                    exact(Token::LeftBrace).map(|_| ()),
-                    alt(
-                        exact(Token::RightBrace).map(|_| ()),
-                        alt(
-                            exact(Token::DoubleColon).map(|_| ()),
-                            alt(
-                                exact(Token::Comma).map(|_| ()),
-                                alt(exact(Token::OperatorMany0).map(|_| ()), ident.map(|_| ())),
-                            ),
-                        ),
-                    ),
-                )),
-                exact(Token::Semicolon),
-            ),
-        ),
-    ))(state)?;
+        exact(Token::KeywordUse),
+        many1(alt((
+            exact(Token::LeftBrace).map(|_| ()),
+            exact(Token::RightBrace).map(|_| ()),
+            exact(Token::DoubleColon).map(|_| ()),
+            exact(Token::Comma).map(|_| ()),
+            exact(Token::OperatorMany0).map(|_| ()),
+            ident.map(|_| ()),
+        ))),
+        exact(Token::Semicolon),
+    )))(state)?;
 
     Ok((state, ast::UseStatement(use_statement)))
 }
@@ -92,7 +84,7 @@ fn config_value<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::ConfigValu
 where
     's: 't,
 {
-    alt(
+    alt((
         delimited(
             exact(Token::LeftBracket),
             sep0(config_value, exact(Token::Comma)),
@@ -100,7 +92,7 @@ where
         )
         .map(ast::ConfigValue::Array),
         token.map(ast::ConfigValue::Token),
-    )(state)
+    ))(state)
 }
 
 fn rule<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Rule<'s>>
@@ -112,14 +104,14 @@ where
     let (state, _) = exact(Token::Colon)(state)?;
     let (state, ret_type) = ret_type(state)?;
     let (state, _) = exact(Token::Assign)(state)?;
-    let (state, productions) = alt(
+    let (state, productions) = alt((
         delimited(
             exact(Token::LeftBrace),
             terminated(sep1(production, exact(Token::Comma)), opt(exact(Token::Comma))),
             exact(Token::RightBrace),
         ),
         production.map(|p| vec![p]),
-    )(state)?;
+    ))(state)?;
     let (state, _) = exact(Token::Semicolon)(state)?;
 
     Ok((state, ast::Rule { is_public: public.is_some(), name, ret_type, productions }))
@@ -139,19 +131,19 @@ where
 
     // Arrow and rust expression are optional if seq has only one element
     let (state, is_fallible, rust_expression) = if combinator.combinators.len() == 1 {
-        let (state, prod) = opt(pair(
+        let (state, prod) = opt(seq((
             either(exact(Token::FatArrow), exact(Token::FatArrowFallible)).map(|e| e.is_right()),
             rust_expression,
-        ))(state)?;
+        )))(state)?;
         match prod {
             Some((is_fallible, rust_expression)) => (state, is_fallible, rust_expression),
             None => (state, false, ast::RustExpression("{ $1.into() }")),
         }
     } else {
-        let (state, (is_fallible, rust_expression)) = pair(
+        let (state, (is_fallible, rust_expression)) = seq((
             either(exact(Token::FatArrow), exact(Token::FatArrowFallible)).map(|e| e.is_right()),
             rust_expression,
-        )(state)?;
+        ))(state)?;
         (state, is_fallible, rust_expression)
     };
 
@@ -165,13 +157,11 @@ fn combinator<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Combinator<'
 where
     's: 't,
 {
-    let (state, combinator) = alt(
-        alt(
-            combinator_seq.map(ast::Combinator::Seq),
-            combinator_choice.map(ast::Combinator::Choice),
-        ),
+    let (state, combinator) = alt((
+        combinator_seq.map(ast::Combinator::Seq),
+        combinator_choice.map(ast::Combinator::Choice),
         combinator_leaf,
-    )(state)?;
+    ))(state)?;
 
     Ok((state, combinator))
 }
@@ -202,23 +192,22 @@ where
 {
     let span_start = state.input().positioned_start();
 
-    let (state, combinator) = alt(
+    let (state, combinator) = alt((
         // Parenthesized
         delimited(exact(Token::LeftParen), combinator, exact(Token::RightParen)),
         // Atom
-        slice(alt(
-            alt(
-                token.map(ast::CombinatorAtomKind::Token),
-                function_call.map(ast::CombinatorAtomKind::FunctionCall),
-            ),
+        slice(alt((
+            token.map(ast::CombinatorAtomKind::Token),
+            function_call.map(ast::CombinatorAtomKind::FunctionCall),
             path.map(ast::CombinatorAtomKind::Path),
-        ))
+        )))
         .map(|(kind, source)| ast::Combinator::Atom(ast::CombinatorAtom { kind, source })),
-    )(state)?;
-    let (state, suffix) = opt(alt(
-        alt(exact(Token::QuestionMark).map(|_| '?'), exact(Token::OperatorMany0).map(|_| '*')),
-        exact(Token::OperatorMany1).map(|_| '+'),
     ))(state)?;
+    let (state, suffix) = opt(alt((
+        exact(Token::QuestionMark).map(|_| '?'),
+        exact(Token::OperatorMany0).map(|_| '*'),
+        exact(Token::OperatorMany1).map(|_| '+'),
+    )))(state)?;
 
     let span_end = state.input().positioned_end(span_start);
     let source = &state.input().source()[span_start..span_end];
@@ -260,16 +249,15 @@ fn ret_type<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::RetType<'s>>
 where
     's: 't,
 {
-    let (state, (_, ret_type)) = slice(many1(alt(
-        alt(
-            alt(
-                alt(exact(Token::LeftAngle), exact(Token::RightAngle)).map(|_| ()),
-                path.map(|_| ()),
-            ),
-            alt(exact(Token::SingleQuote), exact(Token::Comma)).map(|_| ()),
-        ),
-        alt(exact(Token::LeftParen), exact(Token::RightParen)).map(|_| ()),
-    )))(state)?;
+    let (state, (_, ret_type)) = slice(many1(alt((
+        exact(Token::LeftAngle).map(|_| ()),
+        exact(Token::RightAngle).map(|_| ()),
+        exact(Token::SingleQuote).map(|_| ()),
+        exact(Token::Comma).map(|_| ()),
+        exact(Token::LeftParen).map(|_| ()),
+        exact(Token::RightParen).map(|_| ()),
+        path.map(|_| ()),
+    ))))(state)?;
 
     Ok((state, ast::RetType(ret_type)))
 }
@@ -288,7 +276,7 @@ where
     's: 't,
 {
     let (state, token) =
-        alt(token_lit.map(ast::Token::TokenLit), token_regex.map(ast::Token::TokenRegex))(state)?;
+        alt((token_lit.map(ast::Token::TokenLit), token_regex.map(ast::Token::TokenRegex)))(state)?;
 
     Ok((state, token))
 }
@@ -315,7 +303,8 @@ fn path<'s, 't>(state: State<'s, 't>) -> PResult<'s, 't, ast::Path<'s>>
 where
     's: 't,
 {
-    let (state, (_, path)) = slice(pair(ident, opt(pair(exact(Token::DoubleColon), path))))(state)?;
+    let (state, (_, path)) =
+        slice(seq((ident, opt(seq((exact(Token::DoubleColon), path))))))(state)?;
 
     Ok((state, ast::Path(path)))
 }
