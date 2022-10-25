@@ -25,10 +25,14 @@ pub fn generate<'a>(
     // Lexer skip
     let lexer_skip = config.lexer_skip.iter().map(|token| match token {
         ast::Token::TokenLit(t) => {
-            format!(r#"#[token("{}", logos::skip)]"#, t.0).parse::<TokenStream>().unwrap()
+            format!(r#"#[token("{}", ::toktok::__intern::logos::skip)]"#, t.0)
+                .parse::<TokenStream>()
+                .unwrap()
         }
         ast::Token::TokenRegex(t) => {
-            format!(r#"#[regex("{}", logos::skip)]"#, t.0).parse::<TokenStream>().unwrap()
+            format!(r#"#[regex("{}", ::toktok::__intern::logos::skip)]"#, t.0)
+                .parse::<TokenStream>()
+                .unwrap()
         }
     });
 
@@ -62,6 +66,7 @@ pub fn generate<'a>(
                 use ::std::fmt;
 
                 #[derive(Logos, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord,  Hash)]
+                #[logos(crate = "::toktok::__intern::logos")]
                 pub enum Token {
                     #(#token_variants,)*
 

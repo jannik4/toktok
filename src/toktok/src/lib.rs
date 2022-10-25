@@ -8,4 +8,6 @@ pub use toktok_macros::*;
 
 // Internals
 #[doc(hidden)]
-pub mod __intern;
+pub mod __intern {
+    pub use logos;
+}
