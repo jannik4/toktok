@@ -16,7 +16,7 @@ toktok-core = { path = "../toktok-core", version = "0.2.0" }
 
 anyhow = "1.0.57"
 ariadne = "0.1.5"
-logos = { git = "https://github.com/jannik4/logos" } # logos = "0.12.1"
+logos = "0.13.0"
 
 proc-macro2 = "1.0.38"
 quote = "1.0.18"

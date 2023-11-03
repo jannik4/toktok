@@ -23,18 +23,10 @@ pub fn generate<'a>(
     });
 
     // Lexer skip
-    let lexer_skip = config.lexer_skip.iter().map(|token| match token {
-        ast::Token::TokenLit(t) => {
-            format!(r#"#[token("{}", ::toktok::__intern::logos::skip)]"#, t.0)
-                .parse::<TokenStream>()
-                .unwrap()
-        }
-        ast::Token::TokenRegex(t) => {
-            format!(r#"#[regex("{}", ::toktok::__intern::logos::skip)]"#, t.0)
-                .parse::<TokenStream>()
-                .unwrap()
-        }
-    });
+    let lexer_skip = config
+        .lexer_skip
+        .iter()
+        .map(|token| format!(r#"#[logos(skip r"{}")]"#, token.0).parse::<TokenStream>().unwrap());
 
     // Token display
     let token_display = tokens
@@ -66,12 +58,11 @@ pub fn generate<'a>(
                 use ::std::fmt;
 
                 #[derive(Logos, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord,  Hash)]
-                #[logos(crate = "::toktok::__intern::logos")]
+                #[logos(crate = ::toktok::__intern::logos)]
+                #(#lexer_skip)*
                 pub enum Token {
                     #(#token_variants,)*
 
-                    #[error]
-                    #(#lexer_skip)*
                     Error,
                 }
 
@@ -86,7 +77,12 @@ pub fn generate<'a>(
                 pub fn lex(source: &str) -> Vec<::toktok::SpannedToken<Token>> {
                     let mut lexer = Token::lexer(source);
                     let mut tokens = Vec::new();
-                    while let Some(token) = lexer.next() {
+                    while let Some(token_result) = lexer.next() {
+                        let token = match token_result {
+                            Ok(token) => token,
+                            Err(()) => Token::Error,
+                        };
+
                         tokens.push(::toktok::SpannedToken { token, span: lexer.span() });
                     }
                     tokens

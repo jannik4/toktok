@@ -1,35 +1,42 @@
-use crate::ast;
+use crate::ast::{Ast, ConfigValue, Item, Token, TokenRegex};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Config<'a> {
-    pub lexer_skip: Vec<ast::Token<'a>>,
+    pub lexer_skip: Vec<TokenRegex<'a>>,
 }
 
 impl<'a> Config<'a> {
-    pub fn build(ast: &ast::Ast<'a>) -> Self {
-        let mut config = Config::default();
+    pub fn build(ast: &Ast<'a>) -> Self {
+        let mut lexer_skip = None;
 
         for item in &ast.items {
             match item {
-                ast::Item::Config(conf) => match conf.name.0 {
-                    "lexer::skip" => match &conf.value {
-                        ast::ConfigValue::Array(array) => {
-                            config.lexer_skip = array
+                Item::Config(conf) => match conf.name.0 {
+                    "lexer::skip" => {
+                        let new_value = match &conf.value {
+                            ConfigValue::Array(array) => array
                                 .iter()
                                 .map(|value| match value {
-                                    ast::ConfigValue::Array(_) => panic!("unexpected value"),
-                                    ast::ConfigValue::Token(t) => *t,
+                                    ConfigValue::Array(_) => panic!("unexpected value"),
+                                    ConfigValue::Token(Token::TokenLit(_)) => {
+                                        panic!("unexpected value")
+                                    }
+                                    ConfigValue::Token(Token::TokenRegex(t)) => *t,
                                 })
-                                .collect();
-                        }
-                        ast::ConfigValue::Token(t) => config.lexer_skip = vec![*t],
-                    },
+                                .collect(),
+                            ConfigValue::Token(Token::TokenLit(_)) => panic!("unexpected value"),
+                            ConfigValue::Token(Token::TokenRegex(t)) => vec![*t],
+                        };
+
+                        assert!(lexer_skip.is_none(), "duplicate config: {}", conf.name.0);
+                        lexer_skip = Some(new_value);
+                    }
                     name => panic!("unknown config: {}", name),
                 },
-                ast::Item::UseStatement(_) | ast::Item::Rule(_) => (),
+                Item::UseStatement(_) | Item::Rule(_) => (),
             }
         }
 
-        config
+        Config { lexer_skip: lexer_skip.unwrap_or_default() }
     }
 }

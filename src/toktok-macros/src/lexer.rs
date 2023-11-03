@@ -2,6 +2,8 @@ use logos::Logos;
 use std::fmt;
 
 #[derive(Logos, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[logos(skip r"[ \t\r\n\f]+")]
+#[logos(skip r"//[^\r\n]*")]
 pub enum Token {
     #[token(";")]
     Semicolon,
@@ -67,9 +69,6 @@ pub enum Token {
 
     RustExpression,
 
-    #[error]
-    #[regex(r"[ \t\r\n\f]+", logos::skip)]
-    #[regex(r"//[^\r\n]*", logos::skip)]
     Error,
 }
 
@@ -123,7 +122,12 @@ pub fn lex(source: &str) -> Vec<toktok_core::SpannedToken<Token>> {
     let mut lexer = Token::lexer(source);
     let mut tokens = Vec::new();
 
-    while let Some(token) = lexer.next() {
+    while let Some(token_result) = lexer.next() {
+        let token = match token_result {
+            Ok(token) => token,
+            Err(()) => Token::Error,
+        };
+
         tokens.push(toktok_core::SpannedToken { token, span: lexer.span() });
         if token == Token::FatArrow || token == Token::FatArrowFallible {
             let span_start = lexer.span().end;
