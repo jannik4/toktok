@@ -347,6 +347,34 @@ where
     }
 }
 
+pub fn custom<'s, 't, T, O, P>(
+    name: &'static str,
+    parse: impl Fn(&str) -> Option<O>,
+) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, O>
+where
+    T: Clone + PartialEq,
+    's: 't,
+{
+    move |state: State<'s, 't, T>| match state.first() {
+        Some(spanned) => match parse(&state.input().source()[spanned.span.clone()]) {
+            Some(out) => {
+                let (state, _) = state.split_first();
+                Ok((state, out))
+            }
+            None => Err(state.and_error(Error::new_expected(
+                Span::Range(spanned.span.clone()),
+                vec![TokenExpected::Custom(name)],
+                TokenFound::Token(spanned.token.clone()),
+            ))),
+        },
+        None => Err(state.and_error(Error::new_expected(
+            Span::Eoi,
+            vec![TokenExpected::Custom(name)],
+            TokenFound::Eoi,
+        ))),
+    }
+}
+
 pub fn positioned<'s, 't, T, O, F>(
     f: F,
 ) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, (O, Range<usize>)>
