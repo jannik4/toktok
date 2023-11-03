@@ -108,7 +108,7 @@ fn generate_production_match_block(
         }
     } else {
         // Closure is needed to ensure res_block does not return any errors
-        quote! { Ok((__state__, (move || #rust_expr)())) }
+        quote! { Ok::<_, self::__intern__::ParserError<Token>>((__state__, (move || #rust_expr)())) }
     };
 
     let production = generate_production(production, skip_combinators, token_map)?;
@@ -137,10 +137,13 @@ fn generate_production_match_block(
             let __state__ = {
                 let __input__ = __state__.input();
                 match #production {
-                    Ok((__state__, #c_tuple)) => return {{
+                    Ok((__state__, #c_tuple)) => {
                         #calc_span
-                        #rust_expr
-                    }},
+                        match #rust_expr {
+                            Ok(__ok__) => return Ok(__ok__),
+                            Err(__e__) => __e__.recover(__input__)?,
+                        }
+                    },
                     Err(__e__) => __e__.recover(__input__)?,
                 }
             };
