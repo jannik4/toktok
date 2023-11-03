@@ -347,7 +347,7 @@ where
     }
 }
 
-pub fn custom<'s, 't, T, O, P>(
+pub fn custom<'s, 't, T, O>(
     name: &'static str,
     parse: impl Fn(&str) -> Option<O>,
 ) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, O>
