@@ -281,20 +281,9 @@ fn flatten_c_tuple(name: &str, len: usize) -> TokenStream {
 }
 
 fn common_combinators(rule: &ast::Rule<'_>) -> usize {
-    // If any production is fallible, common combinators can not be used
-    if rule.productions.iter().any(|p| p.is_fallible) {
-        return 0;
-    }
-
-    // If there is only one rule, common combinators can not be used
-    if rule.productions.len() == 1 {
-        return 0;
-    }
-
     // Calc common combinators
     let mut n = 0;
-    loop {
-        let c = &rule.productions[0].combinator.combinators[n];
+    while let Some(c) = rule.productions[0].combinator.combinators.get(n) {
         for prod in rule.productions.iter().skip(1) {
             match prod.combinator.combinators.get(n) {
                 Some(c2) if c == c2 => (),
@@ -303,4 +292,5 @@ fn common_combinators(rule: &ast::Rule<'_>) -> usize {
         }
         n += 1;
     }
+    n
 }
