@@ -7,7 +7,9 @@ mod state;
 pub mod combinator;
 
 pub use self::{
-    error::{Error, ErrorKind, ParserError, PrettyPrintOptions, StateError, TokenOrEoi},
+    error::{
+        Error, ErrorKind, ParserError, PrettyPrintOptions, StateError, TokenExpected, TokenFound,
+    },
     span::Span,
     state::{Input, SpannedToken, State},
 };

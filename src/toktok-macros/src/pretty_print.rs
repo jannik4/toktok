@@ -1,13 +1,14 @@
 use crate::lexer::Token;
 use anyhow::{anyhow, Error};
 use ariadne::{Label, Report, ReportKind, Source};
-use toktok_core::{PrettyPrintOptions, TokenOrEoi};
+use toktok_core::{PrettyPrintOptions, TokenExpected};
 
 pub fn pretty_print_toktok_error(error: toktok_core::Error<Token>, source: &str) -> Error {
     let range = error.span().as_range().cloned().unwrap_or(source.len()..source.len());
     let error = error.pretty_print(&PrettyPrintOptions {
-        rename_token: None,
-        filter_expected: Some(Box::new(|expected: &[TokenOrEoi<Token>]| {
+        rename_token_expected: None,
+        rename_token_found: None,
+        filter_expected: Some(Box::new(|expected: &[TokenExpected<Token>]| {
             use std::collections::HashSet;
 
             // Filter duplicates

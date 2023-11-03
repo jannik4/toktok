@@ -78,13 +78,20 @@ pub struct Error<T> {
 
 #[derive(Debug)]
 pub enum ErrorKind<T> {
-    Expected(Vec<TokenOrEoi<T>>, TokenOrEoi<T>),
+    Expected(Vec<TokenExpected<T>>, TokenFound<T>),
     ExpectedNegative(Box<dyn StdError + Send + Sync>),
     Custom(Box<dyn StdError + Send + Sync>),
 }
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
-pub enum TokenOrEoi<T> {
+pub enum TokenExpected<T> {
+    Token(T),
+    Custom(&'static str),
+    Eoi,
+}
+
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
+pub enum TokenFound<T> {
     Token(T),
     Eoi,
 }
@@ -96,8 +103,8 @@ impl<T> Error<T> {
 
     pub fn new_expected(
         span: impl Into<Span>,
-        expected: impl IntoIterator<Item = TokenOrEoi<T>>,
-        found: TokenOrEoi<T>,
+        expected: impl IntoIterator<Item = TokenExpected<T>>,
+        found: TokenFound<T>,
     ) -> Self {
         Self {
             span: span.into(),
@@ -147,13 +154,13 @@ impl<T> Error<T> {
 
                 let mut message = String::new();
                 message += "found: ";
-                message += &token_str(found, options.rename_token.as_deref());
+                message += &token_found_str(found, options.rename_token_found.as_deref());
                 message += ", expected one of: ";
                 for (idx, token) in expected.iter().enumerate() {
                     if idx != 0 {
                         message += ", ";
                     }
-                    message += &token_str(token, options.rename_token.as_deref());
+                    message += &token_expected_str(token, options.rename_token_expected.as_deref());
                 }
                 message
             }
@@ -246,19 +253,20 @@ where
 }
 
 pub struct PrettyPrintOptions<T> {
-    pub rename_token: Option<Box<dyn Fn(&TokenOrEoi<T>) -> String>>,
-    pub filter_expected: Option<Box<dyn Fn(&[TokenOrEoi<T>]) -> Vec<TokenOrEoi<T>>>>,
+    pub rename_token_expected: Option<Box<dyn Fn(&TokenExpected<T>) -> String>>,
+    pub rename_token_found: Option<Box<dyn Fn(&TokenFound<T>) -> String>>,
+    pub filter_expected: Option<Box<dyn Fn(&[TokenExpected<T>]) -> Vec<TokenExpected<T>>>>,
 }
 
 impl<T> Default for PrettyPrintOptions<T> {
     fn default() -> Self {
-        Self { rename_token: None, filter_expected: None }
+        Self { rename_token_expected: None, rename_token_found: None, filter_expected: None }
     }
 }
 
-fn token_str<T>(
-    token: &TokenOrEoi<T>,
-    rename_token: Option<&dyn Fn(&TokenOrEoi<T>) -> String>,
+fn token_expected_str<T>(
+    token: &TokenExpected<T>,
+    rename_token: Option<&dyn Fn(&TokenExpected<T>) -> String>,
 ) -> String
 where
     T: fmt::Display,
@@ -266,8 +274,25 @@ where
     match rename_token {
         Some(rename_token) => rename_token(token),
         None => match token {
-            TokenOrEoi::Eoi => "<EOI>".to_string(),
-            TokenOrEoi::Token(token) => format!("{}", token),
+            TokenExpected::Eoi => "<EOI>".to_string(),
+            TokenExpected::Custom(name) => format!("<{}>", name),
+            TokenExpected::Token(token) => format!("{}", token),
+        },
+    }
+}
+
+fn token_found_str<T>(
+    token: &TokenFound<T>,
+    rename_token: Option<&dyn Fn(&TokenFound<T>) -> String>,
+) -> String
+where
+    T: fmt::Display,
+{
+    match rename_token {
+        Some(rename_token) => rename_token(token),
+        None => match token {
+            TokenFound::Eoi => "<EOI>".to_string(),
+            TokenFound::Token(token) => format!("{}", token),
         },
     }
 }

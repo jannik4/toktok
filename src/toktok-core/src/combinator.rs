@@ -1,4 +1,6 @@
-use crate::{Error, Parser, ParserError, Result, Span, State, StateError, TokenOrEoi};
+use crate::{
+    Error, Parser, ParserError, Result, Span, State, StateError, TokenExpected, TokenFound,
+};
 use either::Either;
 use std::ops::Range;
 
@@ -17,8 +19,8 @@ where
     let found = state.first().unwrap().token.clone();
     Err(state.and_error(Error::new_expected(
         Span::Eoi,
-        vec![TokenOrEoi::Eoi],
-        TokenOrEoi::Token(found),
+        vec![TokenExpected::Eoi],
+        TokenFound::Token(found),
     )))
 }
 
@@ -334,13 +336,13 @@ where
         Some(spanned) if spanned.token == token => Ok(state.split_first()),
         Some(spanned) => Err(state.and_error(Error::new_expected(
             Span::Range(spanned.span.clone()),
-            vec![TokenOrEoi::Token(token.clone())],
-            TokenOrEoi::Token(spanned.token.clone()),
+            vec![TokenExpected::Token(token.clone())],
+            TokenFound::Token(spanned.token.clone()),
         ))),
         None => Err(state.and_error(Error::new_expected(
             Span::Eoi,
-            vec![TokenOrEoi::Token(token.clone())],
-            TokenOrEoi::Eoi,
+            vec![TokenExpected::Token(token.clone())],
+            TokenFound::Eoi,
         ))),
     }
 }
