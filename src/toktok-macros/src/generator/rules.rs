@@ -130,7 +130,7 @@ fn generate_production_match_block(
         } else {
             quote! {
                 match #rust_expr {
-                    Ok(__ok__) => return Ok(__ok__),
+                    Ok(__ok__) => Ok(__ok__),
                     Err(infallible) => match infallible {},
                 }
             }
