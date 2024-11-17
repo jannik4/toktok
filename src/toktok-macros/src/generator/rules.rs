@@ -95,10 +95,12 @@ fn generate_production_match_block(
     skip_combinators: usize,
     token_map: &HashMap<ast::Token<'_>, usize>,
 ) -> Result<TokenStream> {
+    let is_fallible = production.is_fallible;
+
     let c_tuple = c_tuple(1 + skip_combinators, production.combinator.combinators.len());
 
     let rust_expr = generate_rust_expression(production);
-    let rust_expr = if production.is_fallible {
+    let rust_expr = if is_fallible {
         // Closure is needed to ensure res_block errors are catched
         quote! {
             match (move || #rust_expr)() {
@@ -108,7 +110,7 @@ fn generate_production_match_block(
         }
     } else {
         // Closure is needed to ensure res_block does not return any errors
-        quote! { Ok::<_, self::__intern__::ParserError<Token>>((__state__, (move || #rust_expr)())) }
+        quote! { Ok::<_, ::core::convert::Infallible>((__state__, (move || #rust_expr)())) }
     };
 
     let production = generate_production(production, skip_combinators, token_map)?;
@@ -123,6 +125,17 @@ fn generate_production_match_block(
     };
 
     if is_last {
+        let rust_expr = if is_fallible {
+            quote!(#rust_expr)
+        } else {
+            quote! {
+                match #rust_expr {
+                    Ok(__ok__) => return Ok(__ok__),
+                    Err(infallible) => match infallible {},
+                }
+            }
+        };
+
         Ok(quote! {
             match #production {
                 Ok((__state__, #c_tuple)) => return {{
@@ -133,16 +146,29 @@ fn generate_production_match_block(
             }
         })
     } else {
+        let rust_expr = if is_fallible {
+            quote! {
+                match #rust_expr {
+                    Ok(__ok__) => return Ok(__ok__),
+                    Err(__e__) => __e__.recover(__input__)?,
+                }
+            }
+        } else {
+            quote! {
+                match #rust_expr {
+                    Ok(__ok__) => return Ok(__ok__),
+                    Err(infallible) => match infallible {},
+                }
+            }
+        };
+
         Ok(quote! {
             let __state__ = {
                 let __input__ = __state__.input();
                 match #production {
                     Ok((__state__, #c_tuple)) => {
                         #calc_span
-                        match #rust_expr {
-                            Ok(__ok__) => return Ok(__ok__),
-                            Err(__e__) => __e__.recover(__input__)?,
-                        }
+                        #rust_expr
                     },
                     Err(__e__) => __e__.recover(__input__)?,
                 }
@@ -284,6 +310,10 @@ fn flatten_c_tuple(name: &str, len: usize) -> TokenStream {
 }
 
 fn common_combinators(rule: &ast::Rule<'_>) -> usize {
+    if rule.productions.iter().any(|p| p.is_fallible) {
+        return 0;
+    }
+
     // Calc common combinators
     let mut n = 0;
     while let Some(c) = rule.productions[0].combinator.combinators.get(n) {
