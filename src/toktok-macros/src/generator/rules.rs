@@ -270,9 +270,28 @@ fn generate_combinator(
 
 fn generate_rust_expression(production: &ast::Production<'_>) -> Result<TokenStream> {
     let mut res = production.rust_expression.0.replace("$span", "__span__");
-    for idx in 1..=production.combinator.combinators.len() {
-        res = res.replace(&format!("${}", idx), &format!("__c_{}__", idx));
+
+    while let Some(start) = res.find("$") {
+        let end = res[start + 1..]
+            .find(|c: char| !c.is_ascii_digit() && c != '_')
+            .map(|end| start + end + 1)
+            .unwrap_or_else(|| res.len());
+
+        let name = &res[start..end];
+        let idx = res[start + 1..end].parse::<usize>().map_err(|_| {
+            CompileError::from_message(format!("invalid index in rust expression: {}", name))
+        })?;
+
+        if idx == 0 || idx > production.combinator.combinators.len() {
+            return Err(CompileError::from_message(format!(
+                "invalid index in rust expression: {}",
+                name
+            )));
+        }
+
+        res.replace_range(start..end, &format!("__c_{}__", idx));
     }
+
     Ok(res.parse()?)
 }
 
