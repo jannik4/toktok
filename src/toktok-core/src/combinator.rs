@@ -62,7 +62,7 @@ where
     F: Parser<'s, 't, T, O>,
     's: 't,
 {
-    move |state| Ok(f.parse(state).map_err(ParserError::with_is_fail)?)
+    move |state| f.parse(state).map_err(ParserError::with_is_fail)
 }
 
 pub fn box_<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, Box<O>>
@@ -72,7 +72,7 @@ where
 {
     let boxed_f = f.map(Box::new);
 
-    move |state| Ok(boxed_f.parse(state)?)
+    move |state| boxed_f.parse(state)
 }
 
 pub fn opt<'s, 't, T, O, F>(f: F) -> impl Fn(State<'s, 't, T>) -> Result<'s, 't, T, Option<O>>
@@ -322,7 +322,7 @@ where
 
         match f2.parse(state) {
             Ok((rest, out)) => Ok((rest, Either::Right(out))),
-            Err(e) => Err(e.into()),
+            Err(e) => Err(e),
         }
     }
 }

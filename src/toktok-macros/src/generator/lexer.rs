@@ -10,7 +10,7 @@ pub fn generate<'a>(
     config: &Config<'_>,
 ) -> Result<(HashMap<ast::Token<'a>, usize>, TokenStream)> {
     // Get all tokens
-    let tokens = tokens(&ast);
+    let tokens = tokens(ast);
 
     // Token enum variants
     let token_variants = tokens.iter().enumerate().map(|(idx, token)| match token {

@@ -12,7 +12,7 @@ pub fn pretty_print_toktok_error(error: toktok_core::Error<Token>, source: &str)
             use std::collections::HashSet;
 
             // Filter duplicates
-            let expected = expected.into_iter().copied().collect::<HashSet<_>>();
+            let expected = expected.iter().copied().collect::<HashSet<_>>();
 
             // Sort
             let mut expected = expected.into_iter().collect::<Vec<_>>();

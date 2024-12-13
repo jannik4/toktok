@@ -2,7 +2,7 @@ use crate::ast;
 use anyhow::Result;
 use proc_macro2::{TokenStream, TokenTree};
 use quote::{format_ident, quote};
-use std::collections::HashMap;
+use std::{cmp::Ordering, collections::HashMap};
 
 pub fn generate(
     ast: &ast::Ast<'_>,
@@ -280,15 +280,17 @@ fn generate_rust_expression(production: &ast::Production<'_>) -> TokenStream {
 }
 
 fn c_tuple(from: usize, to: usize) -> TokenStream {
-    if from > to {
-        quote! { () }
-    } else if from == to {
-        let c = format_ident!("__c_{}__", to);
-        quote! { #c }
-    } else {
-        let rest = c_tuple(from, to - 1);
-        let c = format_ident!("__c_{}__", to);
-        quote! { (#rest, #c) }
+    match from.cmp(&to) {
+        Ordering::Greater => quote! { () },
+        Ordering::Equal => {
+            let c = format_ident!("__c_{}__", to);
+            quote! { #c }
+        }
+        Ordering::Less => {
+            let rest = c_tuple(from, to - 1);
+            let c = format_ident!("__c_{}__", to);
+            quote! { (#rest, #c) }
+        }
     }
 }
 

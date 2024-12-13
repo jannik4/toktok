@@ -25,7 +25,7 @@ impl<'s, 't, T> State<'s, 't, T> {
     }
 
     pub fn first(&self) -> Option<&'t SpannedToken<T>> {
-        self.input.tokens.get(0)
+        self.input.tokens.first()
     }
 
     pub fn split_first(self) -> (Self, &'s str) {
@@ -65,7 +65,7 @@ impl<'s, 't, T> Input<'s, 't, T> {
         Input {
             source,
             tokens,
-            last_token_position_end: match tokens.get(0) {
+            last_token_position_end: match tokens.first() {
                 Some(token) => token.span.start,
                 None => 0,
             },
@@ -77,7 +77,7 @@ impl<'s, 't, T> Input<'s, 't, T> {
     }
 
     pub fn positioned_start(&self) -> usize {
-        match self.tokens.get(0) {
+        match self.tokens.first() {
             Some(token) => token.span.start,
             None => self.source.len(),
         }

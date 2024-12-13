@@ -38,6 +38,7 @@ pub struct Production<'a> {
     pub combinator: CombinatorSeq<'a>,
     pub rust_expression: RustExpression<'a>,
     pub is_fallible: bool,
+    #[expect(unused)]
     pub source: &'a str,
 }
 

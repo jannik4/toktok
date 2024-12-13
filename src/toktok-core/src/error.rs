@@ -252,6 +252,7 @@ where
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub struct PrettyPrintOptions<T> {
     pub rename_token_expected: Option<Box<dyn Fn(&TokenExpected<T>) -> String>>,
     pub rename_token_found: Option<Box<dyn Fn(&TokenFound<T>) -> String>>,
@@ -264,6 +265,7 @@ impl<T> Default for PrettyPrintOptions<T> {
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn token_expected_str<T>(
     token: &TokenExpected<T>,
     rename_token: Option<&dyn Fn(&TokenExpected<T>) -> String>,
@@ -281,6 +283,7 @@ where
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn token_found_str<T>(
     token: &TokenFound<T>,
     rename_token: Option<&dyn Fn(&TokenFound<T>) -> String>,
