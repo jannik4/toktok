@@ -15,7 +15,7 @@ proc-macro = true
 toktok-core = { path = "../toktok-core", version = "0.2.0" }
 
 ariadne = "0.3.0"
-logos = { git = "https://github.com/maciejhirsz/logos", rev = "refs/pull/348/head" } # "0.13.1" if fix is released
+logos = "0.15.0"
 
 proc-macro2 = "1.0.69"
 quote = "1.0.33"
