@@ -1,4 +1,4 @@
-use crate::{ast, config::Config, Result};
+use crate::{ast, config::Config, CompileError};
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::{HashMap, HashSet};
@@ -7,7 +7,8 @@ use std::iter;
 pub fn generate<'a>(
     ast: &ast::Ast<'a>,
     config: &Config<'_>,
-) -> Result<(HashMap<ast::Token<'a>, usize>, TokenStream)> {
+    error_sink: &mut impl FnMut(CompileError),
+) -> (HashMap<ast::Token<'a>, usize>, TokenStream) {
     // Get all tokens
     let tokens = tokens(ast);
 
@@ -15,45 +16,79 @@ pub fn generate<'a>(
     let token_variants = tokens
         .iter()
         .enumerate()
-        .map(|(idx, token)| match token {
+        .filter_map(|(idx, token)| match token {
             ast::Token::TokenLit(t) => {
-                Ok(format!(r#"#[token("{}")] Token{}"#, t.0, idx).parse::<TokenStream>()?)
+                match format!(r#"#[token("{}")] Token{}"#, t.0, idx).parse::<TokenStream>() {
+                    Ok(tokens) => Some(tokens),
+                    Err(error) => {
+                        error_sink(error.into());
+                        None
+                    }
+                }
             }
             ast::Token::TokenRegex(t) => {
-                Ok(format!(r#"#[regex("{}")] Token{}"#, t.0, idx).parse::<TokenStream>()?)
+                match format!(r#"#[regex("{}")] Token{}"#, t.0, idx).parse::<TokenStream>() {
+                    Ok(tokens) => Some(tokens),
+                    Err(error) => {
+                        error_sink(error.into());
+                        None
+                    }
+                }
             }
         })
-        .collect::<Result<Vec<_>>>()?;
+        .collect::<Vec<_>>();
 
     // Lexer skip
     let lexer_skip = config
         .lexer_skip
         .iter()
-        .map(|token| Ok(format!(r#"#[logos(skip r"{}")]"#, token.0).parse::<TokenStream>()?))
-        .collect::<Result<Vec<_>>>()?;
+        .filter_map(|token| {
+            match format!(r#"#[logos(skip r"{}")]"#, token.0).parse::<TokenStream>() {
+                Ok(tokens) => Some(tokens),
+                Err(error) => {
+                    error_sink(error.into());
+                    None
+                }
+            }
+        })
+        .collect::<Vec<_>>();
 
     // Token display
     let token_display = tokens
         .iter()
         .enumerate()
-        .map(|(idx, token)| match token {
+        .filter_map(|(idx, token)| match token {
             ast::Token::TokenLit(t) => {
-                Ok(format!(r#"Token::Token{} => write!(f, "`{{}}`", "{}")"#, idx, t.0)
-                    .parse::<TokenStream>()?)
+                match format!(r#"Token::Token{} => write!(f, "`{{}}`", "{}")"#, idx, t.0)
+                    .parse::<TokenStream>()
+                {
+                    Ok(tokens) => Some(tokens),
+                    Err(error) => {
+                        error_sink(error.into());
+                        None
+                    }
+                }
             }
             ast::Token::TokenRegex(t) => {
-                Ok(format!(r#"Token::Token{} => write!(f, "r`{{}}`", "{}")"#, idx, t.0)
-                    .parse::<TokenStream>()?)
+                match format!(r#"Token::Token{} => write!(f, "r`{{}}`", "{}")"#, idx, t.0)
+                    .parse::<TokenStream>()
+                {
+                    Ok(tokens) => Some(tokens),
+                    Err(error) => {
+                        error_sink(error.into());
+                        None
+                    }
+                }
             }
         })
-        .chain(iter::once(Ok(quote! { Token::Error => write!(f, "ERROR") })))
-        .collect::<Result<Vec<_>>>()?;
+        .chain(iter::once(quote! { Token::Error => write!(f, "ERROR") }))
+        .collect::<Vec<_>>();
 
     // Token map
     let token_map = tokens.iter().enumerate().map(|(idx, token)| (*token, idx)).collect();
 
     //
-    Ok((
+    (
         token_map,
         quote! {
             mod __lexer__ {
@@ -92,7 +127,7 @@ pub fn generate<'a>(
                 }
             }
         },
-    ))
+    )
 }
 
 fn tokens<'a>(ast: &ast::Ast<'a>) -> Vec<ast::Token<'a>> {

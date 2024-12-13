@@ -23,19 +23,12 @@ pub fn make_parser(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         Err(e) => return quote!(#e).into(),
     };
 
-    let tokens = match make_tokens(&source) {
-        Ok(gen_tokens) => {
-            quote! {
-                #recompile_on_change
-                #gen_tokens
-            }
-        }
-        Err(err) => {
-            quote! {
-                #recompile_on_change
-                #err
-            }
-        }
+    let (tokens, errors) = build(&source);
+    let tokens = quote! {
+        #(#errors)*
+
+        #recompile_on_change
+        #tokens
     };
 
     tokens.into()
@@ -87,13 +80,21 @@ fn parse_input(input: TokenStream) -> Result<(String, TokenStream), CompileError
     Ok((source, recompile_on_change))
 }
 
-fn make_tokens(source: &str) -> Result<TokenStream> {
+fn build(source: &str) -> (Option<TokenStream>, Vec<CompileError>) {
     // Parse grammar
-    let ast = parser::parse(source)?;
+    let ast = match parser::parse(source) {
+        Ok(ast) => ast,
+        Err(e) => return (None, vec![e]),
+    };
+
+    let mut errors = Vec::new();
+    let mut error_sink = |e| errors.push(e);
 
     // Build config
-    let config = config::Config::build(&ast)?;
+    let config = config::Config::build(&ast, &mut error_sink);
 
     // Generate parser
-    generator::generate(ast, config)
+    let tokens = generator::generate(ast, config, &mut error_sink);
+
+    (Some(tokens), errors)
 }

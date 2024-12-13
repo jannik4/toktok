@@ -3,24 +3,28 @@ mod parser;
 mod rules;
 mod use_statements;
 
-use crate::{ast, config::Config, Result};
+use crate::{ast, config::Config, CompileError};
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn generate(ast: ast::Ast<'_>, config: Config<'_>) -> Result<TokenStream> {
+pub fn generate(
+    ast: ast::Ast<'_>,
+    config: Config<'_>,
+    error_sink: &mut impl FnMut(CompileError),
+) -> TokenStream {
     // Generate use statements
-    let use_statements = use_statements::generate(&ast)?;
+    let use_statements = use_statements::generate(&ast, error_sink);
 
     // Generate lexer
-    let (token_map, lexer) = lexer::generate(&ast, &config)?;
+    let (token_map, lexer) = lexer::generate(&ast, &config, error_sink);
 
     // Generate rules
-    let rules = rules::generate(&ast, &token_map)?;
+    let rules = rules::generate(&ast, &token_map, error_sink);
 
     // Generate parser
-    let parser = parser::generate(&ast)?;
+    let parser = parser::generate(&ast, error_sink);
 
-    Ok(quote! {
+    quote! {
         mod parser {
             #![allow(non_snake_case)]
             #![allow(unused_braces)]
@@ -42,5 +46,5 @@ pub fn generate(ast: ast::Ast<'_>, config: Config<'_>) -> Result<TokenStream> {
             // Rules (mod __rules__ { rules })
             #rules
         }
-    })
+    }
 }

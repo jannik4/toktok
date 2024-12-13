@@ -1,8 +1,8 @@
-use crate::{ast, Result};
+use crate::{ast, CompileError};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-pub fn generate(ast: &ast::Ast<'_>) -> Result<TokenStream> {
+pub fn generate(ast: &ast::Ast<'_>, error_sink: &mut impl FnMut(CompileError)) -> TokenStream {
     let parser = ast
         .items
         .iter()
@@ -11,10 +11,13 @@ pub fn generate(ast: &ast::Ast<'_>) -> Result<TokenStream> {
                 let name = format_ident!("{}", rule.name.0);
                 let ret_type = match rule.ret_type.0.parse::<TokenStream>(){
                     Ok(tokens) => tokens,
-                    Err(error) => return Some(Err(error.into())),
+                    Err(error) => {
+                        error_sink(error.into());
+                        return None;
+                    }
                 };
 
-                Some(Ok(quote! {
+                Some(quote! {
                     pub fn #name(source: &str) -> Result<#ret_type, ::toktok::Error<self::__lexer__::Token>> {
                         // Lex
                         let tokens = self::__lexer__::lex(source);
@@ -25,11 +28,11 @@ pub fn generate(ast: &ast::Ast<'_>) -> Result<TokenStream> {
 
                         Ok(res)
                     }
-                }))
+                })
             }
             _ => None,
         })
-        .collect::<Result<Vec<_>>>()?;
+        .collect::<Vec<_>>();
 
-    Ok(quote! { #(#parser)* })
+    quote! { #(#parser)* }
 }

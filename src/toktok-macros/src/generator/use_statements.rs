@@ -1,21 +1,24 @@
-use crate::{ast, Result};
+use crate::{ast, CompileError};
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn generate(ast: &ast::Ast<'_>) -> Result<TokenStream> {
+pub fn generate(ast: &ast::Ast<'_>, error_sink: &mut impl FnMut(CompileError)) -> TokenStream {
     let use_statements = ast
         .items
         .iter()
         .filter_map(|item| match item {
             ast::Item::UseStatement(use_statement) => {
                 Some(match use_statement.0.parse::<TokenStream>() {
-                    Ok(tokens) => Ok(tokens),
-                    Err(error) => Err(error.into()),
+                    Ok(tokens) => Some(tokens),
+                    Err(error) => {
+                        error_sink(error.into());
+                        None
+                    }
                 })
             }
             ast::Item::Config(_) | ast::Item::Rule(_) => None,
         })
-        .collect::<Result<Vec<_>>>()?;
+        .collect::<Vec<_>>();
 
-    Ok(quote! { #(#use_statements)* })
+    quote! { #(#use_statements)* }
 }

@@ -1,6 +1,6 @@
 use crate::{
     ast::{Ast, ConfigValue, Item, Token, TokenRegex},
-    CompileError, Result,
+    CompileError,
 };
 
 #[derive(Debug)]
@@ -9,7 +9,7 @@ pub struct Config<'a> {
 }
 
 impl<'a> Config<'a> {
-    pub fn build(ast: &Ast<'a>) -> Result<Self> {
+    pub fn build(ast: &Ast<'a>, error_sink: &mut impl FnMut(CompileError)) -> Self {
         let mut lexer_skip = None;
 
         for item in &ast.items {
@@ -19,18 +19,21 @@ impl<'a> Config<'a> {
                         let new_value = match &conf.value {
                             ConfigValue::Array(array) => array
                                 .iter()
-                                .map(|value| match value {
+                                .filter_map(|value| match value {
                                     ConfigValue::Array(_) => {
-                                        Err(CompileError::from_message("unexpected value"))
+                                        error_sink(CompileError::from_message("unexpected value"));
+                                        None
                                     }
                                     ConfigValue::Token(Token::TokenLit(_)) => {
-                                        Err(CompileError::from_message("unexpected value"))
+                                        error_sink(CompileError::from_message("unexpected value"));
+                                        None
                                     }
-                                    ConfigValue::Token(Token::TokenRegex(t)) => Ok(*t),
+                                    ConfigValue::Token(Token::TokenRegex(t)) => Some(*t),
                                 })
-                                .collect::<Result<_>>()?,
+                                .collect(),
                             ConfigValue::Token(Token::TokenLit(_)) => {
-                                return Err(CompileError::from_message("unexpected value"))
+                                error_sink(CompileError::from_message("unexpected value"));
+                                continue;
                             }
                             ConfigValue::Token(Token::TokenRegex(t)) => vec![*t],
                         };
@@ -39,13 +42,13 @@ impl<'a> Config<'a> {
                         lexer_skip = Some(new_value);
                     }
                     name => {
-                        return Err(CompileError::from_message(format!("unknown config: {}", name)))
+                        error_sink(CompileError::from_message(format!("unknown config: {}", name)));
                     }
                 },
                 Item::UseStatement(_) | Item::Rule(_) => (),
             }
         }
 
-        Ok(Config { lexer_skip: lexer_skip.unwrap_or_default() })
+        Config { lexer_skip: lexer_skip.unwrap_or_default() }
     }
 }
