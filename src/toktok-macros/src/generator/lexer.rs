@@ -1,5 +1,4 @@
-use crate::{ast, config::Config};
-use anyhow::Result;
+use crate::{ast, config::Config, Result};
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::{HashMap, HashSet};
@@ -13,20 +12,25 @@ pub fn generate<'a>(
     let tokens = tokens(ast);
 
     // Token enum variants
-    let token_variants = tokens.iter().enumerate().map(|(idx, token)| match token {
-        ast::Token::TokenLit(t) => {
-            format!(r#"#[token("{}")] Token{}"#, t.0, idx).parse::<TokenStream>().unwrap()
-        }
-        ast::Token::TokenRegex(t) => {
-            format!(r#"#[regex("{}")] Token{}"#, t.0, idx).parse::<TokenStream>().unwrap()
-        }
-    });
+    let token_variants = tokens
+        .iter()
+        .enumerate()
+        .map(|(idx, token)| match token {
+            ast::Token::TokenLit(t) => {
+                Ok(format!(r#"#[token("{}")] Token{}"#, t.0, idx).parse::<TokenStream>()?)
+            }
+            ast::Token::TokenRegex(t) => {
+                Ok(format!(r#"#[regex("{}")] Token{}"#, t.0, idx).parse::<TokenStream>()?)
+            }
+        })
+        .collect::<Result<Vec<_>>>()?;
 
     // Lexer skip
     let lexer_skip = config
         .lexer_skip
         .iter()
-        .map(|token| format!(r#"#[logos(skip r"{}")]"#, token.0).parse::<TokenStream>().unwrap());
+        .map(|token| Ok(format!(r#"#[logos(skip r"{}")]"#, token.0).parse::<TokenStream>()?))
+        .collect::<Result<Vec<_>>>()?;
 
     // Token display
     let token_display = tokens
@@ -34,17 +38,16 @@ pub fn generate<'a>(
         .enumerate()
         .map(|(idx, token)| match token {
             ast::Token::TokenLit(t) => {
-                format!(r#"Token::Token{} => write!(f, "`{{}}`", "{}")"#, idx, t.0)
-                    .parse::<TokenStream>()
-                    .unwrap()
+                Ok(format!(r#"Token::Token{} => write!(f, "`{{}}`", "{}")"#, idx, t.0)
+                    .parse::<TokenStream>()?)
             }
             ast::Token::TokenRegex(t) => {
-                format!(r#"Token::Token{} => write!(f, "r`{{}}`", "{}")"#, idx, t.0)
-                    .parse::<TokenStream>()
-                    .unwrap()
+                Ok(format!(r#"Token::Token{} => write!(f, "r`{{}}`", "{}")"#, idx, t.0)
+                    .parse::<TokenStream>()?)
             }
         })
-        .chain(iter::once(quote! { Token::Error => write!(f, "ERROR") }));
+        .chain(iter::once(Ok(quote! { Token::Error => write!(f, "ERROR") })))
+        .collect::<Result<Vec<_>>>()?;
 
     // Token map
     let token_map = tokens.iter().enumerate().map(|(idx, token)| (*token, idx)).collect();

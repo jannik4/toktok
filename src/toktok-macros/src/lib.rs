@@ -1,62 +1,57 @@
 #![deny(rust_2018_idioms)]
+#![deny(clippy::expect_used, clippy::panic)]
 
 mod ast;
 mod config;
+mod error;
 mod generator;
 mod lexer;
 mod parser;
-mod pretty_print;
 
+use self::error::CompileError;
 use proc_macro2::{TokenStream, TokenTree};
 use quote::quote;
 use std::{env, fs, path::PathBuf};
 
+type Result<T, E = CompileError> = std::result::Result<T, E>;
+
 #[proc_macro]
 pub fn make_parser(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Parse input
-    let (path, source) = parse_input(input.into());
+    let (source, recompile_on_change) = match parse_input(input.into()) {
+        Ok((source, recompile_on_change)) => (source, recompile_on_change),
+        Err(e) => return quote!(#e).into(),
+    };
 
-    // Recompile on change
-    let recompile_on_change = {
-        let path = path.to_str().expect("invalid path");
-        quote! {
-            const _: &str = include_str!(#path); // Recompile if grammar changes
+    let tokens = match make_tokens(&source) {
+        Ok(gen_tokens) => {
+            quote! {
+                #recompile_on_change
+                #gen_tokens
+            }
+        }
+        Err(err) => {
+            quote! {
+                #recompile_on_change
+                #err
+            }
         }
     };
 
-    // Parse grammar
-    let ast = match parser::parse(&source) {
-        Ok(res) => res,
-        Err(e) => panic!("{}", e),
-    };
-
-    // Build config
-    let config = config::Config::build(&ast);
-
-    // Generate parser
-    let gen_tokens = match generator::generate(ast, config) {
-        Ok(res) => res,
-        Err(e) => panic!("{}", e),
-    };
-
-    (quote! {
-        #recompile_on_change
-        #gen_tokens
-    })
-    .into()
+    tokens.into()
 }
 
-fn parse_input(input: TokenStream) -> (PathBuf, String) {
+fn parse_input(input: TokenStream) -> Result<(String, TokenStream), CompileError> {
     let mut items = input.into_iter();
 
     // grammar
     if !matches!(items.next(), Some(TokenTree::Ident(ident)) if ident == "grammar") {
-        panic!("expected `grammar = \"<PATH>\"`");
+        return Err(CompileError::from_message("expected `grammar = \"<PATH>\"`"));
     }
 
     // =
     if !matches!(items.next(), Some( TokenTree::Punct(punct)) if punct.as_char() == '=') {
-        panic!("expected `grammar = \"<PATH>\"`");
+        return Err(CompileError::from_message("expected `grammar = \"<PATH>\"`"));
     }
 
     // grammar path
@@ -68,14 +63,37 @@ fn parse_input(input: TokenStream) -> (PathBuf, String) {
             if lit.starts_with('"') && lit.ends_with('"') {
                 root_path.join(&lit[1..lit.len() - 1])
             } else {
-                panic!("expected `grammar = \"<PATH>\"`")
+                return Err(CompileError::from_message("expected `grammar = \"<PATH>\"`"));
             }
         }
-        _ => panic!("expected `grammar = \"<PATH>\"`"),
+        _ => return Err(CompileError::from_message("expected `grammar = \"<PATH>\"`")),
     };
 
     // Source
-    let source = fs::read_to_string(&path).expect("failed to read parser from file");
+    let source = match fs::read_to_string(&path) {
+        Ok(source) => source,
+        Err(e) => return Err(CompileError::from_message(e.to_string())),
+    };
 
-    (path, source)
+    // Recompile on change
+    let path = match path.to_str() {
+        Some(path) => path,
+        None => return Err(CompileError::from_message("invalid path")),
+    };
+    let recompile_on_change = quote! {
+        const _: &str = include_str!(#path); // Recompile if grammar changes
+    };
+
+    Ok((source, recompile_on_change))
+}
+
+fn make_tokens(source: &str) -> Result<TokenStream> {
+    // Parse grammar
+    let ast = parser::parse(source)?;
+
+    // Build config
+    let config = config::Config::build(&ast)?;
+
+    // Generate parser
+    generator::generate(ast, config)
 }

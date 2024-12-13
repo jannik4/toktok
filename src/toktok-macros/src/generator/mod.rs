@@ -3,8 +3,7 @@ mod parser;
 mod rules;
 mod use_statements;
 
-use crate::{ast, config::Config};
-use anyhow::Result;
+use crate::{ast, config::Config, Result};
 use proc_macro2::TokenStream;
 use quote::quote;
 

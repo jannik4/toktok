@@ -14,7 +14,6 @@ proc-macro = true
 [dependencies]
 toktok-core = { path = "../toktok-core", version = "0.2.0" }
 
-anyhow = "1.0.75"
 ariadne = "0.3.0"
 logos = { git = "https://github.com/maciejhirsz/logos", rev = "refs/pull/348/head" } # "0.13.1" if fix is released
 

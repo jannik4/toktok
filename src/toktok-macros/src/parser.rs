@@ -1,7 +1,7 @@
-use crate::pretty_print::pretty_print_toktok_error;
 use crate::{
     ast,
     lexer::{lex, Token},
+    CompileError,
 };
 use toktok_core::{
     combinator::{
@@ -14,13 +14,13 @@ use toktok_core::{
 type State<'s, 't> = toktok_core::State<'s, 't, Token>;
 type Result<'s, 't, O> = toktok_core::Result<'s, 't, Token, O>;
 
-pub fn parse(source: &str) -> anyhow::Result<ast::Ast<'_>> {
+pub fn parse(source: &str) -> crate::Result<ast::Ast<'_>> {
     // Lex
     let tokens = lex(source);
 
     // Parse
     let state = toktok_core::State::new(source, &tokens);
-    let (_, ast) = ast(state).map_err(|e| pretty_print_toktok_error(e.into(), source))?;
+    let (_, ast) = ast(state).map_err(|e| CompileError::from_toktok_error(e.into(), source))?;
 
     Ok(ast)
 }

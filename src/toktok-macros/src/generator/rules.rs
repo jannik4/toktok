@@ -1,5 +1,4 @@
-use crate::ast;
-use anyhow::Result;
+use crate::{ast, error::CompileError, Result};
 use proc_macro2::{TokenStream, TokenTree};
 use quote::{format_ident, quote};
 use std::{cmp::Ordering, collections::HashMap};
@@ -77,8 +76,7 @@ fn generate_rule(
 
     // Generate rule fn
     let rule_name = format_ident!("{}", rule.name.0);
-    let rule_ret_type =
-        rule.ret_type.0.parse::<TokenStream>().expect("failed to parse return type");
+    let rule_ret_type = rule.ret_type.0.parse::<TokenStream>()?;
     Ok(quote! {
         pub fn #rule_name<'s, 't>(
             __state__: self::__intern__::State<'s, 't, Token>
@@ -99,7 +97,7 @@ fn generate_production_match_block(
 
     let c_tuple = c_tuple(1 + skip_combinators, production.combinator.combinators.len());
 
-    let rust_expr = generate_rust_expression(production);
+    let rust_expr = generate_rust_expression(production)?;
     let rust_expr = if is_fallible {
         // Closure is needed to ensure res_block errors are catched
         quote! {
@@ -206,7 +204,9 @@ fn generate_combinator(
         ast::Combinator::Seq(seq) => {
             let mut combinators = seq.combinators.iter();
             let init = generate_combinator(
-                combinators.next().expect("seq with zero combinators"),
+                combinators
+                    .next()
+                    .ok_or_else(|| CompileError::from_message("seq with zero combinators"))?,
                 token_map,
             )?;
             let pair_combinator = combinators.try_fold::<_, _, Result<_>>(init, |lhs, rhs| {
@@ -224,7 +224,9 @@ fn generate_combinator(
         ast::Combinator::Choice(choice) => {
             let mut combinators = choice.combinators.iter();
             let init = generate_combinator(
-                combinators.next().expect("choice with zero combinators"),
+                combinators
+                    .next()
+                    .ok_or_else(|| CompileError::from_message("choice with zero combinators"))?,
                 token_map,
             )?;
             combinators.try_fold::<_, _, Result<_>>(init, |lhs, rhs| {
@@ -245,14 +247,9 @@ fn generate_combinator(
             quote! { self::__intern__::c::many1(#inner) }
         }
         ast::Combinator::Atom(atom) => match &atom.kind {
-            ast::CombinatorAtomKind::Path(path) => {
-                path.0.parse::<TokenStream>().expect("failed to parse path")
-            }
+            ast::CombinatorAtomKind::Path(path) => path.0.parse::<TokenStream>()?,
             ast::CombinatorAtomKind::Token(token) => {
-                let token_name = format_ident!(
-                    "Token{}",
-                    token_map.get(token).expect("[[internal error]] could not find token"),
-                );
+                let token_name = format_ident!("Token{}", token_map.get(token).unwrap());
                 quote! {
                     self::__intern__::c::exact(super::__lexer__::Token::#token_name)
                 }
@@ -271,12 +268,12 @@ fn generate_combinator(
     })
 }
 
-fn generate_rust_expression(production: &ast::Production<'_>) -> TokenStream {
+fn generate_rust_expression(production: &ast::Production<'_>) -> Result<TokenStream> {
     let mut res = production.rust_expression.0.replace("$span", "__span__");
     for idx in 1..=production.combinator.combinators.len() {
         res = res.replace(&format!("${}", idx), &format!("__c_{}__", idx));
     }
-    res.parse().expect("failed to parse rust expression")
+    Ok(res.parse()?)
 }
 
 fn c_tuple(from: usize, to: usize) -> TokenStream {
