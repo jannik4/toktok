@@ -137,7 +137,7 @@ where
         )))(state)?;
         match prod {
             Some((is_fallible, rust_expression)) => (state, is_fallible, rust_expression),
-            None => (state, false, ast::RustExpression("{ $1.into() }")),
+            None => (state, false, ast::RustExpression("{ $0.into() }")),
         }
     } else {
         let (state, (is_fallible, rust_expression)) = seq((

@@ -4,35 +4,35 @@ use toktok::Error;
 
 @lexer::skip = r"[ \t\r\n]+";
 
-pub json: Value = value ~ eoi => $1;
+pub json: Value = value ~ eoi => $0;
 
 value: Value = {
-    map => Value::Object($1),
-    array => Value::Array($1),
-    string => Value::String($1),
-    number => Value::Number($1),
+    map => Value::Object($0),
+    array => Value::Array($0),
+    string => Value::String($0),
+    number => Value::Number($0),
     "true" => Value::Bool(true),
     "false" => Value::Bool(false),
 };
 
 map: Map<String, Value> = "{" ~ sep0(key_value, ",") ~ "}" => {
     let mut map = Map::new();
-    for (key, value) in $2 {
+    for (key, value) in $1 {
         map.insert(key, value);
     }
     map
 };
-key_value: (String, Value) = string ~ ":" ~ value => ($1, $3);
+key_value: (String, Value) = string ~ ":" ~ value => ($0, $2);
 
 array: Vec<Value> = "[" ~ sep0(value, ",") ~ "]" => {
     let mut elements = Vec::new();
-    for value in $2 {
+    for value in $1 {
         elements.push(value);
     }
     elements
 };
 
-string: String = r"\"(?:[^\"\\\\]|\\\\.)*\"" => $1[1..$1.len() - 1].to_owned();
+string: String = r"\"(?:[^\"\\\\]|\\\\.)*\"" => $0[1..$0.len() - 1].to_owned();
 number: Number = r"[+-]?[0-9_]+" =>? {
-    Ok($1.parse::<i64>().map_err(|_| Error::new_custom($span, "invalid number".into()))?.into())
+    Ok($0.parse::<i64>().map_err(|_| Error::new_custom($span, "invalid number".into()))?.into())
 };

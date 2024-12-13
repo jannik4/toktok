@@ -52,10 +52,10 @@ fn generate_rule(
 
     // Generate common combinators
     if common_combinators != 0 {
-        for idx in 1..=common_combinators {
+        for idx in 0..common_combinators {
             let c_name = format_ident!("__c_{}__", idx);
             let combinator = generate_combinator(
-                &rule.productions[0].combinator.combinators[idx - 1],
+                &rule.productions[0].combinator.combinators[idx],
                 token_map,
                 error_sink,
             );
@@ -106,7 +106,7 @@ fn generate_production_match_block(
 ) -> TokenStream {
     let is_fallible = production.is_fallible;
 
-    let c_tuple = c_tuple(1 + skip_combinators, production.combinator.combinators.len());
+    let c_tuple = c_tuple(skip_combinators, production.combinator.combinators.len() - 1);
 
     let rust_expr = generate_rust_expression(production, error_sink);
     let rust_expr = if is_fallible {
@@ -301,7 +301,7 @@ fn generate_rust_expression(
 
         let name = &res[start..end];
         let combinator = match res[start + 1..end].parse::<usize>() {
-            Ok(idx) if idx > 0 && idx <= production.combinator.combinators.len() => {
+            Ok(idx) if idx < production.combinator.combinators.len() => {
                 format!("__c_{}__", idx)
             }
             _ => {
