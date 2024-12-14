@@ -26,10 +26,7 @@ pub fn generate(
 
     quote! {
         mod parser {
-            #![allow(non_snake_case)]
-            #![allow(unused_braces)]
-            #![allow(clippy::all)]
-            #![deny(clippy::correctness)]
+            #![allow(unreachable_code)] // Required for loop placeholders
 
             // Use statements
             #use_statements
