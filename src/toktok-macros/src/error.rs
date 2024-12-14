@@ -35,7 +35,7 @@ impl CompileError {
         });
 
         let mut buffer = Vec::new();
-        Report::build(ReportKind::Error, (), range.start)
+        Report::build(ReportKind::Error, range.clone())
             .with_message("Syntax Error")
             .with_label(Label::new(range).with_message(error))
             .with_config(Config::default().with_color(false).with_char_set(CharSet::Ascii))

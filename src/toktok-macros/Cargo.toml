@@ -14,7 +14,7 @@ proc-macro = true
 [dependencies]
 toktok-core = { path = "../toktok-core", version = "0.2.0" }
 
-ariadne = "0.3.0"
+ariadne = "0.5.0"
 logos = "0.15.0"
 
 proc-macro2 = "1.0.69"
