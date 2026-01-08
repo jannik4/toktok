@@ -1,4 +1,4 @@
-use crate::{ast, CompileError};
+use crate::{CompileError, ast};
 use proc_macro2::{TokenStream, TokenTree};
 use quote::{format_ident, quote};
 use std::{cmp::Ordering, collections::HashMap};

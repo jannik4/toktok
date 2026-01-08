@@ -1,4 +1,4 @@
-use crate::{ast, config::Config, CompileError};
+use crate::{CompileError, ast, config::Config};
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::{HashMap, HashSet};

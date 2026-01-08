@@ -14,10 +14,6 @@ impl From<Range<usize>> for Span {
 
 impl Span {
     pub fn as_range(&self) -> Option<&Range<usize>> {
-        if let Self::Range(v) = self {
-            Some(v)
-        } else {
-            None
-        }
+        if let Self::Range(v) = self { Some(v) } else { None }
     }
 }

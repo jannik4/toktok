@@ -1,4 +1,4 @@
-use crate::{ast, CompileError};
+use crate::{CompileError, ast};
 use proc_macro2::TokenStream;
 use quote::quote;
 

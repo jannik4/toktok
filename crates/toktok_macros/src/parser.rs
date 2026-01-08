@@ -1,14 +1,13 @@
 use crate::{
-    ast,
-    lexer::{lex, Token},
-    CompileError,
+    CompileError, ast,
+    lexer::{Token, lex},
 };
 use toktok_core::{
+    Parser,
     combinator::{
-        alt, delimited, either, eoi, exact, many0, many1, opt, sep0, sep1, sep_n, seq, slice,
+        alt, delimited, either, eoi, exact, many0, many1, opt, sep_n, sep0, sep1, seq, slice,
         terminated,
     },
-    Parser,
 };
 
 type State<'s, 't> = toktok_core::State<'s, 't, Token>;

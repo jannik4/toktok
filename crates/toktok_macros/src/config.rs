@@ -1,6 +1,6 @@
 use crate::{
-    ast::{Ast, ConfigValue, Item, Token, TokenRegex},
     CompileError,
+    ast::{Ast, ConfigValue, Item, Token, TokenRegex},
 };
 
 #[derive(Debug)]
