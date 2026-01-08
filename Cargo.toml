@@ -1,5 +1,18 @@
 [package]
 name = "toktok"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
 version = "0.2.0"
 authors = ["Jannik Obermann <jannik.obermann@gmail.com>"]
 edition = "2021"
@@ -7,10 +20,6 @@ rust-version = "1.56"
 description = "toktok - WIP"
 repository = "https://github.com/jannik4/toktok"
 license = "MIT OR Apache-2.0"
-
-[workspace]
-resolver = "2"
-members = ["crates/*"]
 
 [dependencies]
 toktok_core = { path = "crates/toktok_core", version = "0.2.0" }

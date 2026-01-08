@@ -1,12 +1,12 @@
 [package]
 name = "toktok_macros"
-version = "0.2.0"
-authors = ["Jannik Obermann <jannik.obermann@gmail.com>"]
-edition = "2021"
-rust-version = "1.56"
-description = "toktok_macros - WIP"
-repository = "https://github.com/jannik4/toktok"
-license = "MIT OR Apache-2.0"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description.workspace = true
+repository.workspace = true
+license.workspace = true
 
 [lib]
 proc-macro = true
