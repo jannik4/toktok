@@ -21,9 +21,13 @@ description = "toktok - WIP"
 repository = "https://github.com/jannik4/toktok"
 license = "MIT OR Apache-2.0"
 
-[dependencies]
+[workspace.dependencies]
 toktok_core = { path = "crates/toktok_core", version = "0.2.0" }
 toktok_macros = { path = "crates/toktok_macros", version = "0.2.0" }
+
+[dependencies]
+toktok_core.workspace = true
+toktok_macros.workspace = true
 logos = "0.16.0"
 
 [dev-dependencies]
