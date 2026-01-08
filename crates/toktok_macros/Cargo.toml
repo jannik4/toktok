@@ -1,10 +1,10 @@
 [package]
-name = "toktok-macros"
+name = "toktok_macros"
 version = "0.2.0"
 authors = ["Jannik Obermann <jannik.obermann@gmail.com>"]
 edition = "2021"
 rust-version = "1.56"
-description = "toktok-macros - WIP"
+description = "toktok_macros - WIP"
 repository = "https://github.com/jannik4/toktok"
 license = "MIT OR Apache-2.0"
 
@@ -12,7 +12,7 @@ license = "MIT OR Apache-2.0"
 proc-macro = true
 
 [dependencies]
-toktok-core = { path = "../toktok-core", version = "0.2.0" }
+toktok_core = { path = "../toktok_core", version = "0.2.0" }
 
 ariadne = "0.6.0"
 logos = "0.16.0"

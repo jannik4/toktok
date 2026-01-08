@@ -1,10 +1,10 @@
 [package]
-name = "toktok-core"
+name = "toktok_core"
 version = "0.2.0"
 authors = ["Jannik Obermann <jannik.obermann@gmail.com>"]
 edition = "2021"
 rust-version = "1.56"
-description = "toktok-core - WIP"
+description = "toktok_core - WIP"
 repository = "https://github.com/jannik4/toktok"
 license = "MIT OR Apache-2.0"
 

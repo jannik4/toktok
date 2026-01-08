@@ -13,8 +13,8 @@ resolver = "2"
 members = ["crates/*"]
 
 [dependencies]
-toktok-core = { path = "crates/toktok-core", version = "0.2.0" }
-toktok-macros = { path = "crates/toktok-macros", version = "0.2.0" }
+toktok_core = { path = "crates/toktok_core", version = "0.2.0" }
+toktok_macros = { path = "crates/toktok_macros", version = "0.2.0" }
 logos = "0.16.0"
 
 [dev-dependencies]
