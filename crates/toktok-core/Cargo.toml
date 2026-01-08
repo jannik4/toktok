@@ -9,4 +9,4 @@ repository = "https://github.com/jannik4/toktok"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-either = "1.9.0"
+either = "1.15.0"
