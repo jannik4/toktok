@@ -13,9 +13,9 @@ proc-macro = true
 
 [dependencies]
 toktok_core.workspace = true
+logos.workspace = true
 
 ariadne = "0.6.0"
-logos = "0.16.0"
 
 proc-macro2 = "1.0.105"
 quote = "1.0.43"
