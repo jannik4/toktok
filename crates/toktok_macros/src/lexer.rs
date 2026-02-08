@@ -4,7 +4,7 @@ use std::fmt;
 #[allow(clippy::enum_variant_names)]
 #[derive(Logos, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[logos(skip r"[ \t\r\n\f]+")]
-#[logos(skip r"//[^\r\n]*")]
+#[logos(skip(r"//[^\r\n]*", allow_greedy = true))]
 pub enum Token {
     #[token(";")]
     Semicolon,

@@ -27,7 +27,9 @@ pub fn generate<'a>(
                 }
             }
             ast::Token::TokenRegex(t) => {
-                match format!(r#"#[regex("{}")] Token{}"#, t.0, idx).parse::<TokenStream>() {
+                match format!(r#"#[regex("{}", allow_greedy = true)] Token{}"#, t.0, idx)
+                    .parse::<TokenStream>()
+                {
                     Ok(tokens) => Some(tokens),
                     Err(error) => {
                         error_sink(error.into());
@@ -43,7 +45,9 @@ pub fn generate<'a>(
         .lexer_skip
         .iter()
         .filter_map(|token| {
-            match format!(r#"#[logos(skip r"{}")]"#, token.0).parse::<TokenStream>() {
+            match format!(r#"#[logos(skip(r"{}", allow_greedy = true))]"#, token.0)
+                .parse::<TokenStream>()
+            {
                 Ok(tokens) => Some(tokens),
                 Err(error) => {
                     error_sink(error.into());

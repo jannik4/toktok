@@ -1,7 +1,7 @@
 use super::{Expression, UnaryOperator, BinaryOperator, expr_foldl};
 use toktok::Error;
 
-@lexer::skip = r"[ \t\r\n]+";
+@lexer::skip = r"([ \t\r\n]+|//[^\n]*)";
 
 pub expression: Expression =
     expression_product ~ ((op_add | op_sub) ~ expression_product)* => expr_foldl($0, $1);

@@ -45,6 +45,19 @@ fn simple() {
 }
 
 #[test]
+fn comment() {
+    let source = "1 // comment\n - 2";
+    let res = parser::expression(source).unwrap();
+
+    let expected = Expression::BinaryTerm(
+        Box::new(Expression::Number(1)),
+        BinaryOperator::Sub,
+        Box::new(Expression::Number(2)),
+    );
+    assert_eq!(res, expected);
+}
+
+#[test]
 fn associativity() {
     let source = "4 - 3 - 2";
     let res = parser::expression(source).unwrap();
